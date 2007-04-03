@@ -1,0 +1,35 @@
+#!/bin/sh
+
+# which machines to back up? (eg. "192.168.0.1 192.168.0.2")
+machines=
+
+# who to notify when certain machine is being backed up?
+#notify_common="admin@host"
+#notify_192.168.0.1="admin@remotehost1"
+#notify_192.168.0.2="admin@remotehost2"
+
+# where and how many backups to keep?
+backups=/backups
+keep_backups=5
+
+# who should receive logs? (email)
+send_logs_to="root@localhost"
+
+# output (very verbose) debug info?
+debug=YES
+
+# power off when finished? if so what's the command
+halt=NO
+halt_cmd="/sbin/halt -p"
+
+# launch dump? if so, what's the command
+dump=NO
+dump_cmd=/root/bin/dumpfs.sh
+
+# kill timer
+kill_timer=NO
+
+# minimum gigabytes & inodes to keep available
+minimum_space=3
+minimum_inodes=350000
+

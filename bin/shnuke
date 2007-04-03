@@ -1,0 +1,12 @@
+#!/bin/sh
+
+
+TIMEOUT=7200
+SEC=0
+
+while [ $SEC -lt $TIMEOUT ];
+do
+  sleep 1
+  SEC=$(($SEC + 1))
+done
+pkill rsync
