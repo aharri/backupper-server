@@ -49,6 +49,7 @@ fi
 # pick up functions & defaults
 . "$BASE/bin/functions.sh"
 . "$BASE/config/base.conf"
+. "$BASE/templates/notify_tpl.sh"
 
 # install signal traps
 if [ "$kill_timer" = "YES" ]; then
