@@ -47,7 +47,8 @@ function set_config
 notify()
 {
 	_test=$(echo "$1" | sed 's/\./_/g')
-	eval _test='$'notify_$1
+	eval _test=$(echo '$'notify_${_test})
+	#eval _test='$'notify_$1
 	if [ -n "$_test" ]; then
 		echo "$2" | mail -s "Backup process of ${1}" "$_test"
 	fi
