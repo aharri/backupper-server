@@ -12,13 +12,9 @@ partitions_to_dump="a d e f"
 # who to mail
 mailto="iku@openbsd.fi"
 
-# power off when finished?
-halt=NO
-
-# command to run when halt=YES
-halt_cmd="halt"
-halt_opt="-p"
-
+# power off when finished? leave empty if no
+#halt="halt -p"
+halt=
 
 ####################################
 # do not edit below
@@ -50,8 +46,8 @@ for num in $(jot "$count"); do
 done
 
 if [ "$source_found" -ne 1 ] || [ "$target_found" -ne 1 ]; then
-	if [ "$halt" = "YES" ]; then
-		$halt_cmd $halt_opt
+	if [ -n "$halt" ]; then
+		$halt
 	fi
 
 	# sleep a while in case backupper mailed and didn't sleep
@@ -85,7 +81,7 @@ log "$output"
 echo "$debug_str" | /usr/bin/mail -s "Dump log" $mailto
 
 # allow the mail to be delivered if halt specified
-if [ "$halt" = "YES" ]; then
+if [ -n "$halt" ]; then
 	sleep 180
-	$halt_cmd $halt_opt
+	$halt
 fi

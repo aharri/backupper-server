@@ -18,13 +18,11 @@ send_logs_to="root@localhost"
 # output (very verbose) debug info? 
 debug=YES
 
-# power off when finished? if so what's the command
-halt=NO
-halt_cmd="/sbin/halt -p"
+# power off when finished? leave empty if no
+halt="/sbin/halt -p"
 
-# launch dump? if so, what's the command
+# launch dump? YES/NO
 dump=YES
-dump_cmd=/root/bin/dumpfs.sh
 
 # kill timer
 kill_timer=NO
@@ -182,8 +180,7 @@ if [ "$debug" = "YES" ]; then
 fi
 
 if [ "$dump" = "YES" ]; then
-	$dump_cmd
-fi
-if [ "$halt" = "YES" ]; then
-	$halt_cmd
+	$BASE/bin/dumpfs.sh
+elif [ -n "$halt" ]; then
+	$halt
 fi

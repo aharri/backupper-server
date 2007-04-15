@@ -1,2 +1,4 @@
 base.conf
 filter_*
+ssh_key
+ssh_key.pub
