@@ -1,33 +1,23 @@
 #!/bin/sh
 
-# which machines to back up? (eg. "192.168.0.1 192.168.0.2")
+####################################
+# do not edit unless you know what
+# you're actually doing.
+#
+# for configuration check
+# config/backup.conf{,.sample}
+####################################
+
+# defaults
 machines=
-
-# who to notify when certain machine is being backed up?
 #notify_common="admin@host"
-#notify_192.168.0.1="admin@remotehost1"
-#notify_192.168.0.2="admin@remotehost2"
-
-# where and how many backups to keep?
 backups=/backups
 keep_backups=5
-
-# who should receive logs? (email)
 send_logs_to="root@localhost"
-
-# output (very verbose) debug info? 
 debug=YES
-
-# power off when finished? leave empty if no
 halt="/sbin/halt -p"
-
-# launch dump? YES/NO
 dump=YES
-
-# kill timer
 kill_timer=NO
-
-# minimum gigabytes & inodes to keep available
 minimum_space=3
 minimum_inodes=350000
 
@@ -39,14 +29,14 @@ minimum_inodes=350000
 PATH=/root/bin:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
 BASE=$(cd -- "$(dirname -- "$0")"; pwd)
 
-if [ ! -e "$BASE/config/base.conf" ]; then
-	echo "Edit configuration: $BASE/config/base.conf"
+if [ ! -e "$BASE/config/backup.conf" ]; then
+	echo "Edit configuration: $BASE/config/backup.conf"
 	exit 1
 fi
 
 # pick up functions & defaults
 . "$BASE/bin/functions.sh"
-. "$BASE/config/base.conf"
+. "$BASE/config/backup.conf"
 . "$BASE/templates/notify_tpl.sh"
 
 # install signal traps
@@ -180,7 +170,7 @@ if [ "$debug" = "YES" ]; then
 fi
 
 if [ "$dump" = "YES" ]; then
-	$BASE/bin/dumpfs.sh
+	$BASE/dumpfs.sh
 elif [ -n "$halt" ]; then
 	$halt
 fi

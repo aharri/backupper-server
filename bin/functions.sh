@@ -62,9 +62,11 @@ debug_str=
 # 1st param: a string to be logged
 log()
 {
-	stamp=$(date "+%h %e %H:%M:%S")
+	local stamp=$(date "+%h %e %H:%M:%S")
 	debug_str="${debug_str}\n$stamp ${1}"
-	if [ -z "$send_logs_to" ]; then
+	test -t 1 # test for stdout
+	ret=$?
+	if [ -z "$send_logs_to" ] || [ $ret -eq 0 ]; then
 		echo "$stamp ${1}"
 	fi
 }

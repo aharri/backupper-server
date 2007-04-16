@@ -1,36 +1,38 @@
 #!/bin/sh
 
-# dump options
+####################################
+# do not edit unless you know what
+# you're actually doing.
+#
+# for configuration check
+# config/dump.conf{,.sample}
+####################################
+
+# defaults
 opts="-a -0 -u"
-# dd options
-#opts="bs=16b seek=1 skip=1 conv=noerror"
 source=wd0
 target=wd1
 target_dir=/mnt
 partitions_to_dump="a d e f"
+mailto="root@localhost"
+halt="/sbin/halt -p"
 
-# who to mail
-mailto="iku@openbsd.fi"
-
-# power off when finished? leave empty if no
-#halt="halt -p"
-halt=
-
-####################################
-# do not edit below
-####################################
 debug_str=
 source_found=0
 target_found=0
 hostname=$(hostname)
+PATH=/root/bin:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
+BASE=$(cd -- "$(dirname -- "$0")"; pwd)
 
-# 1st param: a string to be logged
-log()
-{
-	local stamp=$(/bin/date "+%h %e %H:%M:%S")
-#	local foo=$(echo $1 | sed "s|^|$stamp|")
-	debug_str="${debug_str}\n${stamp} ${1}"
-}
+if [ ! -e "$BASE/config/dump.conf" ]; then
+	echo "Edit configuration: $BASE/config/dump.conf"
+	exit 1
+fi
+
+# pick up functions & defaults
+. "$BASE/bin/functions.sh"
+. "$BASE/config/dump.conf"
+. "$BASE/templates/notify_tpl.sh"
 
 # sanity check: see if the disks are there, otherwise we quit
 count=$(/sbin/sysctl hw.diskcount | /usr/bin/cut -f 2 -d '=')

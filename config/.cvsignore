@@ -1,4 +1,5 @@
-base.conf
+backup.conf
+dump.conf
 filter_*
 ssh_key
 ssh_key.pub
