@@ -56,7 +56,7 @@ mail tr ssh find dirname basename tail sort head install wc du bc cut awk
 rsync"
 
 for util in $required; do
-	foo=`which $util`
+	foo=$(which $util)
 	if [ "$?" = 0 ]; then
 		log "found util: $foo"
 	else
@@ -65,7 +65,7 @@ for util in $required; do
 	fi
 done
 
-date=`date +%Y-%m-%d`
+date=$(date +%Y-%m-%d-%H)
 
 # if machines is defined on the parameter line, use it
 if [ -n "$1" ]; then
@@ -93,11 +93,11 @@ for machine in $machines; do
 			log "created ${backups}/${machine}/"
 		fi
 
-		last_backup_dir=`find "${backups}/${machine}/" -maxdepth 1 -name "????-??-??" | sort -nr | head -1`
-		last_backup_time=`basename ${last_backup_dir} 2>/dev/null`
+		last_backup_dir=$(find "${backups}/${machine}/" -maxdepth 1 -name "????-??-??-??" | sort -nr | head -1)
+		last_backup_time=$(basename ${last_backup_dir} 2>/dev/null)
 		log "latest backup seems to be in directory: ${last_backup_dir} (${last_backup_time})"
 		if [ "$last_backup_time" = "$date" ]; then
-			log "you already seem to have backups for today: skipping"
+			log "you already seem to have recent backup snapshot: skipping"
 			continue
 		fi
 
@@ -135,7 +135,7 @@ for machine in $machines; do
 		# directory setup complete
 		output=$(rsync															\
 			-a																	\
-			-e "ssh -o PasswordAuthentication=no -l _backup -i ${ssh_key}"	\
+			-e "ssh -o PasswordAuthentication=no -o BatchMode=yes -l _backup -i ${ssh_key}"	\
 			--rsync-path=/home/_backup/backup_wrapper.sh						\
 			--delete-after														\
 			--delete-excluded													\

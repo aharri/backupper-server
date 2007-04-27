@@ -90,7 +90,7 @@ clean_fs()
 		get_inodes_left
 		if [ "$space_left" -gt "$size" ] && \
 		   [ "$inodes_left" -gt "$minimum_inodes" ]; then break; fi
-		dir_to_remove=$(find $dirs -type d -maxdepth 1 -name "????-??-??")
+		dir_to_remove=$(find $dirs -type d -maxdepth 1 -name "????-??-??-??")
 		elements=$(echo "$dir_to_remove" | tail -n 1 | sed 's,/\+,/,g')
 		elements=$(echo "$elements"/ | tr -dc '/' | wc -c)
 		dir_to_remove=$(echo "$dir_to_remove" | sort -t '/' -k $elements | head -n 1)
