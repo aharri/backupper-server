@@ -41,7 +41,7 @@ fi
 . "$BASE/templates/notify_tpl.sh"
 
 # install signal traps
-trap "kill_bg_jobs" INT ERR TERM
+trap "kill_bg_jobs" EXIT INT QUIT KILL TERM
 log "Installed signal traps"
 
 # where is ssh pubkey for root user in remote clients
@@ -131,21 +131,21 @@ for machine in $machines; do
 		notify "$machine" "$backup_started"
 
 		# directory setup complete
-		output=$(rsync															\
-			-a																	\
-			-e "ssh																\
-				-o PasswordAuthentication=no									\
-				-o BatchMode=yes												\
-				-l _backup														\
-				-i ${ssh_key}"													\
-			--rsync-path=/home/_backup/backup_wrapper.sh						\
-			--delete-after														\
-			--delete-excluded													\
-			--numeric-ids														\
-			--filter ". $BASE/config/filter_common"								\
-			--timeout $io_timeout												\
-			$excludes															\
-			"${machine}:/"														\
+		output=$(rsync \
+			-a \
+			-e "ssh \
+                -o PasswordAuthentication=no \
+                -o BatchMode=yes \
+                -l _backup \
+                -i ${ssh_key}" \
+			--rsync-path=/home/_backup/backup_wrapper.sh \
+			--delete-after \
+			--delete-excluded \
+			--numeric-ids \
+			--filter ". $BASE/config/filter_common" \
+			--timeout $io_timeout \
+			$excludes \
+			"${machine}:/" \
 			"${new_dir}/" 2>&1)
 
 		if [ "$?" -eq 0 ]; then
@@ -160,12 +160,6 @@ for machine in $machines; do
 		log "machine $machine is currently unavailable"
 	fi
 done
-
-# Remove filesystem cleaner from background
-if [ -n "$clean_fs_pid" ]; then
-	kill -KILL "$clean_fs_pid"
-	log "Killed fs cleaner, pid: $clean_fs_pid"
-fi
 
 # mail the results
 if [ -n "$mailto" ]; then
