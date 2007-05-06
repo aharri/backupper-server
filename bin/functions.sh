@@ -41,15 +41,6 @@ debuglog()
 clean_fs()
 {
 	local _INTERVAL=300
-	while : ; do 
-		clean_fs_main
-		sleep $_INTERVAL
-	done
-	
-}
-
-clean_fs_main()
-{
 	local dirs=
 	local size=$(echo "$minimum_space * 1048576" | bc)
 	local _machine
@@ -58,26 +49,29 @@ clean_fs_main()
 	local elements
 	#global machines backups keep_backups space_left minimum_inodes
 
-	# build directory variable
-	for _machine in $machines; do
-		num=$(find ${backups}/$_machine/ -type d -maxdepth 1 | wc -l)
-		if [ "$num" -gt "$keep_backups" ]; then
-			dirs="$dirs ${backups}/$_machine/"
-		fi
-	done
+	while : ; do 
+		# build directory variable
+		for _machine in $machines; do
+			num=$(find ${backups}/$_machine/ -type d -maxdepth 1 | wc -l)
+			if [ "$num" -gt "$keep_backups" ]; then
+				dirs="$dirs ${backups}/$_machine/"
+			fi
+		done
 
-	while :; do
-		# don't clean the disc if there is enough space & inodes left
-		get_space_left
-		get_inodes_left
-		if [ "$space_left" -gt "$size" ] && \
-		   [ "$inodes_left" -gt "$minimum_inodes" ]; then break; fi
-		dir_to_remove=$(find $dirs -type d -maxdepth 1 -name "????-??-??-??")
-		elements=$(echo "$dir_to_remove" | tail -n 1 | sed 's,/\+,/,g')
-		elements=$(echo "$elements"/ | tr -dc '/' | wc -c)
-		dir_to_remove=$(echo "$dir_to_remove" | sort -t '/' -k $elements | head -n 1)
-		log "removing old backup: $dir_to_remove"
-		rm -rf "$dir_to_remove"
+		while :; do
+			# don't clean the disc if there is enough space & inodes left
+			get_space_left
+			get_inodes_left
+			if [ "$space_left" -gt "$size" ] && \
+			   [ "$inodes_left" -gt "$minimum_inodes" ]; then break; fi
+			dir_to_remove=$(find $dirs -type d -maxdepth 1 -name "????-??-??-??")
+			elements=$(echo "$dir_to_remove" | tail -n 1 | sed 's,/\+,/,g')
+			elements=$(echo "$elements"/ | tr -dc '/' | wc -c)
+			dir_to_remove=$(echo "$dir_to_remove" | sort -t '/' -k $elements | head -n 1)
+			log "removing old backup: $dir_to_remove"
+			rm -rf "$dir_to_remove"
+		done
+		sleep $_INTERVAL
 	done
 }
 
@@ -100,9 +94,6 @@ kill_bg_jobs()
 		clean_fs_pid=
 		log "Killed fs cleaner"
 	fi
-	pkill rsync
-	pkill pax
-	exit 1
 }
 
 # Prevent shutdown before mail is delivered

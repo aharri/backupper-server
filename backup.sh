@@ -41,7 +41,7 @@ fi
 . "$BASE/templates/notify_tpl.sh"
 
 # install signal traps
-trap "kill_bg_jobs" EXIT INT QUIT KILL TERM
+trap : INT
 log "Installed signal traps"
 
 # where is ssh pubkey for root user in remote clients
@@ -49,7 +49,7 @@ ssh_key="$BASE/config/ssh_key"
 
 # section: check for missing programs
 required="
-rm ls date pax df
+rm ls date pax df kill
 ping
 mail tr ssh find dirname basename tail sort head install wc du bc cut awk
 rsync"
@@ -162,6 +162,9 @@ done
 if [ -n "$mailto" ]; then
 	echo "$debug_str" | mail -s "Backup log" "$mailto"
 fi
+
+# Remove fs cleaner
+kill_bg_jobs
 
 # Run dump
 $BASE/dumpfs.sh
