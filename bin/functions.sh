@@ -1,54 +1,12 @@
 #!/bin/sh
 
-# From baseup
-function touch_file
-{
-	if [ ! -e "$1" ]; then
-		touch "$1"
-		if [ "$?" -ne 0 ]; then
-			echo "Failed to create configuration file $1"
-			exit 1
-		fi
-	fi
-}
-# From baseup
-function get_config
-{
-	# If configuration does not exist, create it
-	touch_file "$CONFIG"
-
-	_VAL=$(egrep "^$1=" "$CONFIG")
-	ret=$?
-	if [ "$ret" -ne "0" ]; then
-		return $ret
-	fi
-	_VAL=$(echo "$_VAL"	| cut -f 2 -d '=' | tail -n 1)
-	
-}
-# From baseup
-function set_config
-{
-	# If configuration does not exist, create it
-	touch_file "$CONFIG"
-	get_config $1
-	if [ "$?" -ne "0" ]; then
-		echo "$1=$2" >> "$CONFIG"
-		return 0
-	fi
-	TMPFILE=`mktemp -t baseup.XXXXXXXXXX` || return 1
-	sed "s,^$1=.*$,$1=$2," "$CONFIG" > "$TMPFILE"
-	cp -f "$TMPFILE" "$CONFIG"
-	rm -f "$TMPFILE"
-	return 0
-}
-
 # 1st param: what client are we working on
 # 2nd param: what template to use for email body
 notify()
 {
-	_test=$(echo "$1" | sed 's/\./_/g')
+	local _test=$(echo "$1" | sed 's/\./_/g')
+
 	eval _test=$(echo '$'notify_${_test})
-	#eval _test='$'notify_$1
 	if [ -n "$_test" ]; then
 		echo "$2" | mail -s "Backup process of ${1}" "$_test"
 	fi
@@ -57,16 +15,15 @@ notify()
 	fi
 }
 
-# init
 debug_str=
-# 1st param: a string to be logged
 log()
 {
 	local stamp=$(date "+%h %e %H:%M:%S")
+	#global mailto debug_str
+
 	debug_str="${debug_str}\n$stamp ${1}"
 	test -t 1 # test for stdout
-	ret=$?
-	if [ -z "$send_logs_to" ] || [ $ret -eq 0 ]; then
+	if [ "$?" -eq 0 ] || [ -z "$mailto" ]; then
 		echo "$stamp ${1}"
 	fi
 }
@@ -74,6 +31,8 @@ log()
 # debug logging
 debuglog()
 {
+	#global debug
+
 	if [ "$debug" = "YES" ]; then
 		log "$1"
 	fi
@@ -81,7 +40,7 @@ debuglog()
 
 clean_fs()
 {
-	_INTERVAL=300
+	local _INTERVAL=300
 	while : ; do 
 		clean_fs_main
 		sleep $_INTERVAL
@@ -91,8 +50,13 @@ clean_fs()
 
 clean_fs_main()
 {
-	dirs=
-	size=$(echo "$minimum_space * 1048576" | bc)
+	local dirs=
+	local size=$(echo "$minimum_space * 1048576" | bc)
+	local _machine
+	local num
+	local dir_to_remove
+	local elements
+	#global machines backups keep_backups space_left minimum_inodes
 
 	# build directory variable
 	for _machine in $machines; do
@@ -119,15 +83,18 @@ clean_fs_main()
 
 get_space_left()
 {
+	#global space_left
 	space_left=`df -k "${backups}" | tail -1 | awk '{ print $4 }'`
 }
 get_inodes_left()
 {
+	#global inodes_left
 	inodes_left=`df -i "${backups}" | tail -1 | awk '{ print $7 }'`
 }
 
 kill_bg_jobs()
 {
+	#global clean_fs_pid
 	if [ -n "$clean_fs_pid" ]; then
 		kill -KILL "$clean_fs_pid"
 		clean_fs_pid=
@@ -141,26 +108,27 @@ kill_bg_jobs()
 # Prevent shutdown before mail is delivered
 quit_handler()
 {
+	local retval=0
+	local count=1
+	local _INTERVAL=60
+	local temp
+
 	# Get return value, if defined
-	if [ -z "$1" ]; then
-		retval=0
-	else
+	if [ -n "$1" ]; then
 		retval=$1
 	fi
 
 	# If we aren't suppose to shutdown machine, we can exit right away
 	if [ -z "$halt" ]; then
-		exit $retval
+		exit "$retval"
 	fi
 
 	# Wait for mail queue to become empty
-	count=1
-	_INTERVAL=60
 	while : ; do 
 		mailq | grep -q empty && break
-		sleep $_INTERVAL
+		sleep "$_INTERVAL"
 		debuglog "Slept $_INTERVAL seconds, mail queue was not empty"
-		if [ "$count" -gt $_INTERVAL ]; then
+		if [ "$count" -gt "$_INTERVAL" ]; then
 			temp=$((count * _INTERVAL))
 			log "Mail was not delivered in $temp seconds, quiting anyway"
 			break
@@ -170,5 +138,5 @@ quit_handler()
 
 	# Halt the machine and exit with the correct return value!
 	$halt
-	exit $retval
+	exit "$retval"
 }

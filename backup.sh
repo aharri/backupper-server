@@ -121,13 +121,11 @@ for machine in $machines; do
 			pax -r -w -l -p e * "${new_dir}"
 		fi
 
+		excludes=
 		if [ -e "$BASE/config/filter_${machine}" ]; then
-			IFS=:
-			excludes="--filter:. $BASE/config/filter_${machine}"
-		else
-			excludes=
+			excludes=--filter=". $BASE/config/filter_${machine}"
 		fi
-	
+
 		notify "$machine" "$backup_started"
 
 		# directory setup complete
@@ -144,7 +142,7 @@ for machine in $machines; do
 			--numeric-ids \
 			--filter ". $BASE/config/filter_common" \
 			--timeout $io_timeout \
-			$excludes \
+			"$excludes" \
 			"${machine}:/" \
 			"${new_dir}/" 2>&1)
 
@@ -153,7 +151,6 @@ for machine in $machines; do
 		else
 			log "rsync failed with exit code ${?} output was:"
 		fi
-		unset IFS
 		log "$output"
 		notify "$machine" "$backup_finished"
 	else
