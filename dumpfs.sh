@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Copyright (c) 2006,2007 Antti Harri <iku@openbsd.fi>
+# All rights reserved
+
 ####################################
 # do not edit unless you know what
 # you're actually doing.
@@ -17,9 +20,6 @@ partitions_to_dump="a d e f"
 mailto="root@localhost"
 halt="/sbin/halt -p"
 
-debug_str=
-source_found=0
-target_found=0
 hostname=$(hostname)
 PATH=/root/bin:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
 BASE=$(cd -- "$(dirname -- "$0")"; pwd)
@@ -35,10 +35,12 @@ fi
 . "$BASE/templates/notify_tpl.sh"
 
 # sanity check: see if the disks are there, otherwise we quit
-count=$(/sbin/sysctl hw.diskcount | /usr/bin/cut -f 2 -d '=')
+source_found=0
+target_found=0
+count=$(sysctl hw.diskcount | cut -f 2 -d '=')
 for num in $(jot "$count"); do
-	disks=$(/sbin/sysctl hw.disknames | /usr/bin/cut -f 2 -d '=')
-	disk=$(echo "$disks" | /usr/bin/cut -f "$num" -d ',')
+	disks=$(sysctl hw.disknames | cut -f 2 -d '=')
+	disk=$(echo "$disks" | cut -f "$num" -d ',')
 	if [ "$disk" = "$target" ]; then
 		target_found=1
 	fi
@@ -48,16 +50,9 @@ for num in $(jot "$count"); do
 done
 
 if [ "$source_found" -ne 1 ] || [ "$target_found" -ne 1 ]; then
-	if [ -n "$halt" ]; then
-		$halt
-	fi
-
-	# sleep a while in case backupper mailed and didn't sleep
-	sleep 10
-	exit 1
+	quit_handler 1
 fi
 
-log 'Source and target devices found! good'
 log 'Starting dump to a removable drive'
 
 # mount the target directory, this should be listed in fstab
@@ -65,7 +60,7 @@ mount "$target_dir"
 
 for partition in $partitions_to_dump; do
 	# dump
-	output=$(/sbin/dump $opts -f ${target_dir}/${hostname}_${source}${partition} /dev/${source}${partition} 2>&1)
+	output=$(dump $opts -f ${target_dir}/${hostname}_${source}${partition} /dev/${source}${partition} 2>&1)
 	log "$output"
 	# dd
 	#log "# /bin/dd if=/dev/r${source}${partition} of=/dev/r${target}${partition} $opts"
@@ -80,10 +75,6 @@ done
 output=$(/sbin/disklabel $source 2>&1)
 log "$output"
 
-echo "$debug_str" | /usr/bin/mail -s "Dump log" $mailto
+echo "$debug_str" | mail -s "Dump log" $mailto
 
-# allow the mail to be delivered if halt specified
-if [ -n "$halt" ]; then
-	sleep 180
-	$halt
-fi
+quit_handler

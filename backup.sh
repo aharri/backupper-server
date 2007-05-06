@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Copyright (c) 2006,2007 Antti Harri <iku@openbsd.fi>
+# All rights reserved
+
 ####################################
 # do not edit unless you know what
 # you're actually doing.
@@ -13,13 +16,11 @@ machines=
 #notify_common="admin@host"
 backups=/backups
 keep_backups=5
-send_logs_to="root@localhost"
+mailto="root@localhost"
 debug=YES
-halt="/sbin/halt -p"
-dump=YES
-kill_timer=NO
+io_timeout=21600
 minimum_space=3
-minimum_inodes=350000
+minimum_inodes=10000
 
 #
 # below this you shouldn't modify
@@ -40,10 +41,8 @@ fi
 . "$BASE/templates/notify_tpl.sh"
 
 # install signal traps
-if [ "$kill_timer" = "YES" ]; then
-	trap "pkill -f '/bin/sh $BASE/bin/shnuke'": 3
-	trap "pkill -f '/bin/sh $BASE/bin/shnuke'": 15
-fi
+trap "kill_bg_jobs" INT ERR TERM
+log "Installed signal traps"
 
 # where is ssh pubkey for root user in remote clients
 ssh_key="$BASE/config/ssh_key"
@@ -58,12 +57,13 @@ rsync"
 for util in $required; do
 	foo=$(which $util)
 	if [ "$?" = 0 ]; then
-		log "found util: $foo"
+		debuglog "found util: $foo"
 	else
 		log "You are missing $util, please install it"
-		exit
+		exit 1
 	fi
 done
+log "Found all required tools"
 
 date=$(date +%Y-%m-%d-%H)
 
@@ -72,16 +72,14 @@ if [ -n "$1" ]; then
 	machines=$1
 fi
 
+clean_fs &
+clean_fs_pid=$!
+log "Launched filesystem cleaner into bg, pid: $clean_fs_pid"
+debuglog "Keeping $minimum_space GB and $minimum_inodes inodes"
+
 for machine in $machines; do
 	ping -w 1 -c 1 "${machine}" 1>/dev/null 2>/dev/null
 	if [ "$?" -eq "0" ]; then
-		clean_fs
-
-		# install timer for dead processes
-		if [ "$kill_timer" = "YES" ]; then
-			shnuke &
-			foopid=$!
-		fi
 		log "machine $machine is alive"
 
 		if [ ! -e "${backups}/${machine}/" ]; then
@@ -106,7 +104,7 @@ for machine in $machines; do
 		# create empty dir
 		install -d -m 0700 -o 0 -g 0 "$new_dir"
 		if [ -e "$new_dir" ]; then
-			log "created: $new_dir"
+			debuglog "created: $new_dir"
 		else
 			log "failed to create ${new_dir}: skipping to the next"
 			continue
@@ -135,12 +133,17 @@ for machine in $machines; do
 		# directory setup complete
 		output=$(rsync															\
 			-a																	\
-			-e "ssh -o PasswordAuthentication=no -o BatchMode=yes -l _backup -i ${ssh_key}"	\
+			-e "ssh																\
+				-o PasswordAuthentication=no									\
+				-o BatchMode=yes												\
+				-l _backup														\
+				-i ${ssh_key}"													\
 			--rsync-path=/home/_backup/backup_wrapper.sh						\
 			--delete-after														\
 			--delete-excluded													\
 			--numeric-ids														\
 			--filter ". $BASE/config/filter_common"								\
+			--timeout $io_timeout												\
 			$excludes															\
 			"${machine}:/"														\
 			"${new_dir}/" 2>&1)
@@ -148,13 +151,9 @@ for machine in $machines; do
 		if [ "$?" -eq 0 ]; then
 			log "rsync was succesful"
 		else
-			log "rsync failed with exit code ${?}"
-			log "output of rsync follows:"
+			log "rsync failed with exit code ${?} output was:"
 		fi
 		unset IFS
-		if [ "$kill_timer" = "YES" ]; then
-			kill -9 $foopid
-		fi
 		log "$output"
 		notify "$machine" "$backup_finished"
 	else
@@ -162,15 +161,16 @@ for machine in $machines; do
 	fi
 done
 
-if [ "$debug" = "YES" ]; then
-	# mail the results, else print them
-	if [ -n "$send_logs_to" ]; then
-		echo "$debug_str" | mail -s "Backup log" "$send_logs_to"
-	fi
+# Remove filesystem cleaner from background
+if [ -n "$clean_fs_pid" ]; then
+	kill -KILL "$clean_fs_pid"
+	log "Killed fs cleaner, pid: $clean_fs_pid"
 fi
 
-if [ "$dump" = "YES" ]; then
-	$BASE/dumpfs.sh
-elif [ -n "$halt" ]; then
-	$halt
+# mail the results
+if [ -n "$mailto" ]; then
+	echo "$debug_str" | mail -s "Backup log" "$mailto"
 fi
+
+# Run dump
+$BASE/dumpfs.sh

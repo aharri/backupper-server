@@ -1,0 +1,16 @@
+
+* Store lots of FULL backups with the cost
+  of only changed files.
+
+  Diskspace needed for regular UNIX workstation
+  installation:
+
+  Size of installation 4GB, we backup all of it.
+
+  1st day, initial import: 4GB
+  2nd day, only changed files: 4GB + 300MB = 4,3GB
+  3nd day, only changed files: 4,3GB + 100MB = 4,4GB
+  etc.
+
+* Only base of OpenBSD needed and only one 3rd package
+  which is net/rsync.

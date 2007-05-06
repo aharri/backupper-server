@@ -71,7 +71,25 @@ log()
 	fi
 }
 
+# debug logging
+debuglog()
+{
+	if [ "$DEBUG" = "YES" ]; then
+		log "$1"
+	fi
+}
+
 clean_fs()
+{
+	_INTERVAL=300
+	while : ; do 
+		clean_fs_main
+		sleep $_INTERVAL
+	done
+	
+}
+
+clean_fs_main()
 {
 	dirs=
 	size=$(echo "$minimum_space * 1048576" | bc)
@@ -106,4 +124,51 @@ get_space_left()
 get_inodes_left()
 {
 	inodes_left=`df -i "${backups}" | tail -1 | awk '{ print $7 }'`
+}
+
+kill_bg_jobs()
+{
+	if [ -n "$clean_fs_pid" ]; then
+		kill -KILL "$clean_fs_pid"
+		clean_fs_pid=
+		log "Killed fs cleaner"
+	fi
+	pkill rsync
+	pkill pax
+	exit 1
+}
+
+# Prevent shutdown before mail is delivered
+quit_handler()
+{
+	# Get return value, if defined
+	if [ -z "$1" ]; then
+		retval=0
+	else
+		retval=$1
+	fi
+
+	# If we aren't suppose to shutdown machine, we can exit right away
+	if [ -z "$halt" ]; then
+		exit $retval
+	fi
+
+	# Wait for mail queue to become empty
+	count=1
+	_INTERVAL=60
+	while : ; do 
+		mailq | grep -q empty && break
+		sleep $_INTERVAL
+		debuglog "Slept $_INTERVAL seconds, mail queue was not empty"
+		if [ "$count" -gt $_INTERVAL ]; then
+			temp=$((count * _INTERVAL))
+			log "Mail was not delivered in $temp seconds, quiting anyway"
+			break
+		fi
+		count=$((count + 1))
+	done
+
+	# Halt the machine and exit with the correct return value!
+	$halt
+	exit $retval
 }

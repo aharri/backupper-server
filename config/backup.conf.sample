@@ -13,21 +13,15 @@ backups=/backups
 keep_backups=5
 
 # who should receive logs? (email)
-send_logs_to="root@localhost"
+mailto="root@localhost"
 
 # output (very verbose) debug info?
-debug=YES
+debug=NO
 
-# power off when finished? leave empty if no
-halt="/sbin/halt -p"
-
-# launch dump? YES/NO
-dump=YES
-
-# kill timer
-kill_timer=NO
+# IO timeout in seconds, 0 disables
+io_timeout=21600
 
 # minimum gigabytes & inodes to keep available
 minimum_space=3
-minimum_inodes=350000
+minimum_inodes=10000
 
