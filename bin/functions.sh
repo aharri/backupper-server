@@ -74,7 +74,7 @@ log()
 # debug logging
 debuglog()
 {
-	if [ "$DEBUG" = "YES" ]; then
+	if [ "$debug" = "YES" ]; then
 		log "$1"
 	fi
 }
