@@ -25,3 +25,16 @@ io_timeout=21600
 minimum_space=3
 minimum_inodes=10000
 
+# filters
+
+filter_common="\
+- /proc/
+- /dev/
+- /sys/
+- /tmp/"
+
+#filter_192_168_0_1="\
+#- /stuff/
+#+ /stuff
+#+ /stuff/pics/"
+

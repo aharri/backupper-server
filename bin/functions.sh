@@ -40,7 +40,7 @@ debuglog()
 
 clean_fs()
 {
-	local _INTERVAL=300
+	local _INTERVAL=10
 	local dirs=
 	local size=$(echo "$minimum_space * 1048576" | bc)
 	local _machine

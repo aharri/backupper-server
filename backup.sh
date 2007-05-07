@@ -65,6 +65,23 @@ for util in $required; do
 done
 log "Found all required tools"
 
+rsync_filter_common=
+if [ -n "$filter_common" ]; then
+	TMPFILE1=$(mktemp)
+	if [ "$?" -ne 0 ]; then
+		log "Could not create tempfile"
+		exit 1
+	fi
+	echo "$filter_common" > "$TMPFILE1"
+	rsync_filter_common=--filter=". $TMPFILE1"
+fi
+# We probably will need this so create it
+TMPFILE2=$(mktemp)
+if [ "$?" -ne 0 ]; then
+	log "Could not create tempfile"
+	exit 1
+fi
+
 date=$(date +%Y-%m-%d-%H)
 
 # if machines is defined on the parameter line, use it
@@ -79,12 +96,12 @@ debuglog "Keeping $minimum_space GB and $minimum_inodes inodes"
 
 for machine in $machines; do
 	ping -w 1 -c 1 "${machine}" 1>/dev/null 2>/dev/null
-	if [ "$?" -eq "0" ]; then
+	if [ "$?" -eq 0 ]; then
 		log "machine $machine is alive"
 
 		if [ ! -e "${backups}/${machine}/" ]; then
 			install -d -m 0700 -o 0 -g 0 "${backups}/${machine}/"
-			if [ "$?" -ne "0" ]; then 
+			if [ "$?" -ne 0 ]; then 
 				log "could not create ${backups}/${machine}/: skipping" 
 				break
 			fi
@@ -121,9 +138,13 @@ for machine in $machines; do
 			pax -r -w -l -p e * "${new_dir}"
 		fi
 
-		excludes=
-		if [ -e "$BASE/config/filter_${machine}" ]; then
-			excludes=--filter=". $BASE/config/filter_${machine}"
+		local rsync_filter_machine=
+		local _test=$(echo "$machine" | sed 's/\./_/g')
+		eval _test=$(echo '$'filter_${_test})
+
+		if [ -n "$_test" ]; then
+			echo "$_test" > $TMPFILE2			
+			rsync_filter_machine=--filter=". $TMPFILE2"
 		fi
 
 		notify "$machine" "$backup_started"
@@ -140,9 +161,9 @@ for machine in $machines; do
 			--delete-after \
 			--delete-excluded \
 			--numeric-ids \
-			--filter ". $BASE/config/filter_common" \
 			--timeout $io_timeout \
-			"$excludes" \
+			"$rsync_filter_common" \
+			"$rsync_filter_machine" \
 			"${machine}:/" \
 			"${new_dir}/" 2>&1)
 
@@ -157,6 +178,11 @@ for machine in $machines; do
 		log "machine $machine is currently unavailable"
 	fi
 done
+
+if [ -n "$TMPFILE1" ]; then
+	rm -f "$TMPFILE1"
+fi
+rm -f "$TMPFILE2"
 
 # mail the results
 if [ -n "$mailto" ]; then
