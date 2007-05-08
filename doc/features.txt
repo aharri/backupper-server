@@ -1,3 +1,6 @@
+* Features that can be configured:
+  - Expiration time for less important hosts
+  - Robust filter expressions what to include/exclude
 
 * Store lots of FULL backups with the cost
   of only changed files.

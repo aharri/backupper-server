@@ -47,6 +47,7 @@ clean_fs()
 	local num
 	local dir_to_remove
 	local elements
+	local _megs
 	#global machines backups keep_backups space_left minimum_inodes
 
 	while : ; do 
@@ -68,6 +69,8 @@ clean_fs()
 			elements=$(echo "$dir_to_remove" | tail -n 1 | sed 's,/\+,/,g')
 			elements=$(echo "$elements"/ | tr -dc '/' | wc -c)
 			dir_to_remove=$(echo "$dir_to_remove" | sort -t '/' -k $elements | head -n 1)
+			_megs=$((space_left / 1024))
+			log "[STATUS] space left ${_megs} MiB / inodes left ${inodes_left}"
 			log "removing old backup: $dir_to_remove"
 			rm -rf "$dir_to_remove"
 		done

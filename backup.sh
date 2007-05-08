@@ -102,38 +102,46 @@ for machine in $machines; do
 		if [ ! -e "${backups}/${machine}/" ]; then
 			install -d -m 0700 -o 0 -g 0 "${backups}/${machine}/"
 			if [ "$?" -ne 0 ]; then 
-				log "could not create ${backups}/${machine}/: skipping" 
+				log "[SKIPPING] could not create ${backups}/${machine}/" 
 				break
 			fi
 			log "created ${backups}/${machine}/"
 		fi
 
 		last_backup_dir=$(find "${backups}/${machine}/" -maxdepth 1 -name "????-??-??-??" | sort -nr | head -1)
-		last_backup_time=$(basename ${last_backup_dir} 2>/dev/null)
-		log "latest backup seems to be in directory: ${last_backup_dir} (${last_backup_time})"
-		if [ "$last_backup_time" = "$date" ]; then
-			log "you already seem to have recent backup snapshot: skipping"
-			continue
+		if [ -n "$last_backup_dir" ]; then
+			log "latest backup seems to be in directory: $last_backup_dir"
+			local last_backup_time=$(date -j "+%s" $(basename "$last_backup_dir" | sed -e 's/-//g')00)
+			local _now=$(date "+%s")
+			
+			# get and prepare expiration
+			local _expir=$(echo "$machine" | sed 's/\./_/g')
+			eval _expir=$(echo '$'expiration_${_expir})
+			if [ -z "$_expir" ] || [ "$_expir" -lt 0 ]; then
+				_expir=0
+			fi
+			_expir=$((_expir * 3600))
+
+			# finally compare!
+			if [ "$((last_backup_time + _expir))" -gt "$_now" ] || [ $(basename "$last_backup_dir") = "$date" ]; then
+				local _valid=$(((last_backup_time + _expir - _now) / 3600))
+				log "[SKIPPING] snapshot exists that is valid for $_valid hours"
+				continue
+			fi
 		fi
 
 		new_dir="${backups}/${machine}/${date}"
 
 		# create empty dir
+		debuglog "about to create: $new_dir"
 		install -d -m 0700 -o 0 -g 0 "$new_dir"
-		if [ -e "$new_dir" ]; then
-			debuglog "created: $new_dir"
-		else
-			log "failed to create ${new_dir}: skipping to the next"
+		if [ ! -e "$new_dir" ]; then
+			log "[SKIPPING] failed to create ${new_dir}"
 			continue
 		fi
-		# previous backup found -> copy it to be as base
-		if [ "$last_backup_time" != "" ]; then
-			# check for hd space
-			get_space_left
-			get_inodes_left
-			_space_left=$(echo "$space_left / 1024" | bc)
-			log "status: ${_space_left} MiB (space left) / ${inodes_left} (inodes left)"
 
+		# previous backup found -> copy it to be as base
+		if [ -n "$last_backup_dir" ]; then
 			cd "${last_backup_dir}"
 			pax -r -w -l -p e * "${new_dir}"
 		fi
@@ -150,6 +158,7 @@ for machine in $machines; do
 		notify "$machine" "$backup_started"
 
 		# directory setup complete
+		# the following -e specification needs to be indented with spaces!
 		output=$(rsync \
 			-a \
 			-e "ssh \
@@ -168,14 +177,14 @@ for machine in $machines; do
 			"${new_dir}/" 2>&1)
 
 		if [ "$?" -eq 0 ]; then
-			log "rsync was succesful"
+			log "[SUCCESSFUL] rsync was successful"
 		else
-			log "rsync failed with exit code ${?} output was:"
+			log "[FAILED] rsync failed, exit code was ${?}, output was:"
 		fi
 		log "$output"
 		notify "$machine" "$backup_finished"
 	else
-		log "machine $machine is currently unavailable"
+		log "[SKIPPING] machine $machine is currently unavailable"
 	fi
 done
 

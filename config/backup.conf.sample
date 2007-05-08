@@ -38,3 +38,10 @@ filter_common="\
 #+ /stuff
 #+ /stuff/pics/"
 
+# expiration times
+
+# Expiration time per machine, after this time backup
+# is considered no longer valid and new will be processed.
+# Zero or no specification means that backups are
+# processed every time
+#expiration_192_168_0_1=168
