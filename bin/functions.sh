@@ -104,6 +104,7 @@ quit_handler()
 {
 	local retval=0
 	local count=1
+	local maxtries=5
 	local _INTERVAL=60
 	local temp
 
@@ -114,17 +115,23 @@ quit_handler()
 
 	# If we aren't suppose to shutdown machine, we can exit right away
 	if [ -z "$halt" ]; then
+		debuglog "Quiting without waiting"
 		exit "$retval"
 	fi
+
+	# allow mail to BECOME VISIBLE!
+	sleep 5
 
 	# Wait for mail queue to become empty
 	while : ; do 
 		mailq | grep -q empty && break
 		sleep "$_INTERVAL"
+		# log is not visible in mail, because it has been sent already!
+		# it should show up when running interactively though
 		debuglog "Slept $_INTERVAL seconds, mail queue was not empty"
-		if [ "$count" -gt "$_INTERVAL" ]; then
+		if [ "$count" -ge "$maxtries" ]; then
 			temp=$((count * _INTERVAL))
-			log "Mail was not delivered in $temp seconds, quiting anyway"
+			log "Max tries reached, mail was not delivered in $temp seconds, quiting anyway"
 			break
 		fi
 		count=$((count + 1))

@@ -203,3 +203,9 @@ kill_bg_jobs
 
 # Run dump
 $BASE/dumpfs.sh
+
+if [ "$?" -gt 0 ]; then
+	debuglog "Dump was not succesful"
+fi
+
+quit_handler

@@ -50,7 +50,7 @@ for num in $(jot "$count"); do
 done
 
 if [ "$source_found" -ne 1 ] || [ "$target_found" -ne 1 ]; then
-	quit_handler 1
+	exit 0
 fi
 
 log 'Starting dump to a removable drive'
@@ -77,4 +77,4 @@ log "$output"
 
 echo "$debug_str" | mail -s "Dump log" $mailto
 
-quit_handler
+exit 0

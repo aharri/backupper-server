@@ -11,6 +11,3 @@ partitions_to_dump="a d e f"
 
 # who to mail
 mailto="root@localhost"
-
-# power off when finished? leave empty if no
-halt="/sbin/halt -p"
