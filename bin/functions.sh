@@ -53,7 +53,7 @@ clean_fs()
 	while : ; do 
 		# build directory variable
 		for _machine in $machines; do
-			num=$(find ${backups}/$_machine/ -type d -maxdepth 1 | wc -l)
+			num=$(find "${backups}/$_machine/" -type d -maxdepth 1 | wc -l)
 			if [ "$num" -gt "$keep_backups" ]; then
 				dirs="$dirs ${backups}/$_machine/"
 			fi
