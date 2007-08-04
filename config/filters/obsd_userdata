@@ -1,0 +1,22 @@
+# DON'T EDIT THIS FILE, CREATE CUSTOM FILTER INSTEAD
+#
+# Super user
++ /root/
+
+# Normal users
++ /home/
+
+# Users' webdata
++ /var/
++ /var/www/
++ /var/www/users/
++ /var/www/htdocs/
+- /var/www/*
+
+# Crontabs
++ /var/cron/
+- /var/cron/log*
+
+# Skip rest
+- /var/*
+- /*

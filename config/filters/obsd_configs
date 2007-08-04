@@ -1,0 +1,32 @@
+# DON'T EDIT THIS FILE, CREATE CUSTOM FILTER INSTEAD
+#
+# Etc.. of course!
++ /etc/
+
+# Configuration files under /var
++ /var/
+
+# HTTPd configuration files
++ /var/www/
++ /var/www/conf/
+- /var/www/*
+
+# Named configuration files
++ /var/named/
++ /var/named/etc/
++ /var/named/master/
++ /var/named/slave/
+- /var/named/*
+
+# Crontabs
++ /var/cron/
+- /var/cron/log*
+
+# OpenBSD Package tools database
++ /var/db/
++ /var/db/pkg/
+- /var/db/*
+
+# Skip the rest
+- /var/*
+- /*

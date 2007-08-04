@@ -1,0 +1,9 @@
+# DON'T EDIT THIS FILE, CREATE CUSTOM FILTER INSTEAD
+#
+# Stuff we don't want in ANY case.
+- /proc/
+- /dev/
+- /sys/
+- /tmp/
+- /var/cache/
+- /var/tmp/

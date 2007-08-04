@@ -34,7 +34,9 @@ filter_common="\
 - /proc/
 - /dev/
 - /sys/
-- /tmp/"
+- /tmp/
+- /var/cache/
+- /var/tmp/"
 
 #filter_192_168_0_1="\
 #- /stuff/

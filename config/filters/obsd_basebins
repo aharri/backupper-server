@@ -1,0 +1,12 @@
+# DON'T EDIT THIS FILE, CREATE CUSTOM FILTER INSTEAD
+#
+
++ /bsd*
++ /boot
++ /bin/
++ /sbin/
++ /usr/
++ /usr/bin/
++ /usr/sbin/
+- /usr/*
+- /*
