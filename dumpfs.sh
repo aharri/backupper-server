@@ -17,7 +17,7 @@ source=wd0
 target=wd1
 target_dir=/mnt
 partitions_to_dump="a d e f"
-mailto="root@localhost"
+mailto="root"
 halt="/sbin/halt -p"
 
 hostname=$(hostname)
@@ -32,7 +32,6 @@ fi
 # pick up functions & defaults
 . "$BASE/bin/functions.sh"
 . "$BASE/config/dump.conf"
-. "$BASE/templates/notify_tpl.sh"
 
 # sanity check: see if the disks are there, otherwise we quit
 source_found=0

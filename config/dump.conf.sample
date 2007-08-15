@@ -10,4 +10,4 @@ target_dir=/mnt
 partitions_to_dump="a d e f"
 
 # who to mail
-mailto="root@localhost"
+mailto="root"
