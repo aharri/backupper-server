@@ -26,6 +26,7 @@ debuglog()
 clean_fs()
 {
 	local _INTERVAL=10
+	local dir=
 	local dirs=
 	local size=$(echo "$minimum_space * 1048576" | bc)
 	local host=
@@ -39,11 +40,12 @@ clean_fs()
 	while : ; do 
 		# build directory variable
 		for host in $hosts; do
-			num=$(ls -1d /"${backups}"/"${host}"/*/* | wc -l)
-			echo "$num"
-			if [ "$num" -gt "$keep_backups" ]; then
-				dirs="$dirs ${backups}/${host}/"
-			fi
+			for dir in "${backups}"/"${host}"/*; do
+				num=$(ls -1d "${dir}"/* 2>/dev/null | wc -l)
+				if [ "$num" -gt "$keep_backups" ]; then
+					dirs="$dirs $dir"
+				fi
+			done
 		done
 
 		if [ -z "$dirs" ]; then

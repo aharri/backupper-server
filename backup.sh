@@ -83,6 +83,8 @@ clean_fs_pid=$!
 log "Launched filesystem cleaner into bg, pid: $clean_fs_pid"
 debuglog "Keeping $minimum_space GB and $minimum_inodes inodes"
 
+sleep 20
+exit
 for backup_job in $parsed_jobs; do
 	machine=$(echo "$backup_job" | cut -f 1 -d ':')
 	filter_name=$(echo "$backup_job" | cut -f 4 -d ':')
