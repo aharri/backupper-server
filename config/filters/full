@@ -1,7 +1,7 @@
-# DON'T EDIT THIS FILE, CREATE CUSTOM FILTER INSTEAD
+# DON'T EDIT THIS FILE, CREATE CUSTOM FILTER INSTEAD!
 #
 # If you want 'full' snapshot of the target system
 # you should specify this as filter
 # because full snapshot means there are no (other
-# than 'generic') exclude filters
+# than 'generic') exclude filters.
 #
