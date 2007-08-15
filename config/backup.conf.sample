@@ -1,25 +1,17 @@
 #!/bin/sh
 
-# which machines to back up? (eg. "192.168.0.1 192.168.0.2")
-machines=
-
-# who to notify when certain machine is being backed up?
-#notify_common="admin@host"
-#notify_192.168.0.1="admin@remotehost1"
-#notify_192.168.0.2="admin@remotehost2"
-
 # where and how many backups to keep?
 backups=/backups
 keep_backups=5
 
 # who should receive logs? (email)
-mailto="root@localhost"
+mailto="root"
 
 # output (very verbose) debug info?
 debug=NO
 
 # IO timeout in seconds, 0 disables
-io_timeout=21600
+io_timeout=600
 
 # minimum gigabytes & inodes to keep available
 minimum_space=3
@@ -28,25 +20,14 @@ minimum_inodes=10000
 # power off when finished? leave empty if no
 halt="/sbin/halt -p"
 
-# filters
+# FILTERS
 
-filter_common="\
-- /proc/
-- /dev/
-- /sys/
-- /tmp/
-- /var/cache/
-- /var/tmp/"
-
-#filter_192_168_0_1="\
-#- /stuff/
-#+ /stuff
-#+ /stuff/pics/"
-
-# expiration times
-
-# Expiration time per machine, after this time backup
-# is considered no longer valid and new will be processed.
-# Zero or no specification means that backups are
-# processed every time
-#expiration_192_168_0_1=168
+# host:priority:expiration:filter_name
+# 
+# host: IP or resolvable hostname
+# priority: priority when same host has multiple jobs 
+#           (0 or higher number. Lowest "wins")
+# expiration: how many hours will the snapshot be valid
+# filter_name: filter file name under config/filters/
+#
+backup_jobs=

@@ -1,20 +1,5 @@
 #!/bin/sh
 
-# 1st param: what client are we working on
-# 2nd param: what template to use for email body
-notify()
-{
-	local _test=$(echo "$1" | sed 's/\./_/g')
-
-	eval _test=$(echo '$'notify_${_test})
-	if [ -n "$_test" ]; then
-		echo "$2" | mail -s "Backup process of ${1}" "$_test"
-	fi
-	if [ -n "$notify_common" ]; then
-		echo "$2" | mail -s "Backup process of ${1}" "$notify_common"
-	fi
-}
-
 debug_str=
 log()
 {
@@ -43,21 +28,28 @@ clean_fs()
 	local _INTERVAL=10
 	local dirs=
 	local size=$(echo "$minimum_space * 1048576" | bc)
-	local _machine
-	local num
-	local dir_to_remove
-	local elements
-	local _megs
+	local host=
+	local hosts=$(echo "$backup_jobs" | cut -f 1 -d ':' | sort -u)
+	local num=
+	local dir_to_remove=
+	local elements=
+	local _megs=
 	#global machines backups keep_backups space_left minimum_inodes
 
 	while : ; do 
 		# build directory variable
-		for _machine in $machines; do
-			num=$(find "${backups}/$_machine/" -type d -maxdepth 1 | wc -l)
+		for host in $hosts; do
+			num=$(ls -1d /"${backups}"/"${host}"/*/* | wc -l)
+			echo "$num"
 			if [ "$num" -gt "$keep_backups" ]; then
-				dirs="$dirs ${backups}/$_machine/"
+				dirs="$dirs ${backups}/${host}/"
 			fi
 		done
+
+		if [ -z "$dirs" ]; then
+			log "[ERROR] configuration error. FS cleaner cannot continue"
+			exit 1
+		fi
 
 		while :; do
 			# don't clean the disc if there is enough space & inodes left
@@ -65,7 +57,7 @@ clean_fs()
 			get_inodes_left
 			if [ "$space_left" -gt "$size" ] && \
 			   [ "$inodes_left" -gt "$minimum_inodes" ]; then break; fi
-			dir_to_remove=$(find $dirs -type d -maxdepth 1 -name "????-??-??-??")
+			dir_to_remove=$(find $dirs -type d -maxdepth 2 -name "????-??-??-??")
 			elements=$(echo "$dir_to_remove" | tail -n 1 | sed 's,/\+,/,g')
 			elements=$(echo "$elements"/ | tr -dc '/' | wc -c)
 			dir_to_remove=$(echo "$dir_to_remove" | sort -t '/' -k $elements | head -n 1)
@@ -73,6 +65,7 @@ clean_fs()
 			log "[STATUS] space left ${_megs} MiB / inodes left ${inodes_left}"
 			log "removing old backup: $dir_to_remove"
 			rm -rf "$dir_to_remove"
+			sleep 2
 		done
 		sleep $_INTERVAL
 	done
@@ -140,4 +133,80 @@ quit_handler()
 	# Halt the machine and exit with the correct return value!
 	$halt
 	exit "$retval"
+}
+
+# host:priority:expiration:filter_name
+#
+# host: IP or resolvable hostname
+# priority: priority when same host has multiple jobs
+#           (0 or higher number. Lowest "wins")
+# expiration: how many hours will the snapshot be valid
+# filter_name: filter file name under config/filters/
+#
+
+parse_jobs()
+{
+	local backup_job=
+	local parsed_jobs2=
+	local date=$(date +%Y-%m-%d-%H)
+	#global parsed_jobs
+
+	# First parser.
+	for backup_job in $backup_jobs; do
+		# get vars
+		local machine=$(echo "$backup_job" | cut -f 1 -d ':')
+		local priority=$(echo "$backup_job" | cut -f 2 -d ':')
+		local expiration=$(echo "$backup_job" | cut -f 3 -d ':')
+		local filter_name=$(echo "$backup_job" | cut -f 4 -d ':')
+
+		if [ ! -d "${backups}/${machine}/${filter_name}/" ]; then
+			mkdir -p "${backups}/${machine}/${filter_name}/"
+			if [ "$?" -ne 0 ]; then
+				log "[QUITING] could not create ${backups}/${machine}/${filter_name}/"
+				# FIXME: use clean up routine & exit
+				return 1
+			fi
+			debuglog "created ${backups}/${machine}/${filter_name}/"
+			debuglog "${machine}/${filter_name} expired and added to jobs (filter was not found)"
+		else 
+			# compare expiration times
+			local last_backup_dir=$(\
+				find "${backups}/${machine}/${filter_name}/" \
+				-maxdepth 1 \
+				-name "????-??-??-??" | sort -n | tail -1)
+
+			if [ -n "$last_backup_dir" ]; then
+				debuglog "Checking if expired: $last_backup_dir"
+				local last_backup_time=$(date -j "+%s" $(basename "$last_backup_dir" | sed -e 's/-//g')00)
+				local _now=$(date "+%s")
+				
+				expiration=$((expiration * 3600))
+
+				# finally compare!
+				if [ "$((last_backup_time + expiration))" -gt "$_now" ] || [ $(basename "$last_backup_dir") = "$date" ]; then
+					local _valid=$(((last_backup_time + expiration - _now) / 3600))
+					debuglog "${machine}/${filter_name} is valid ($_valid h) and therefore skipped"
+					continue
+				fi
+				log "[EXPIRED] ${machine}/${filter_name} added to jobs"
+			fi
+		fi
+		parsed_jobs2="$parsed_jobs2
+			$backup_job"
+
+	done
+
+	# Second parser.
+	local host=
+	local hosts=$(echo "$parsed_jobs2" | cut -f 1 -d ':' | sort -u)
+	# Traverse hosts.
+	for host in $hosts; do
+		# Select only jobs with highest priority (= lowest number).
+		local hipri=$(echo "$parsed_jobs2" | grep "^[[:space:]]*${host}:" | cut -f 2 -d ':' | sort -n | head -n 1)
+		backup_job=$(echo "$parsed_jobs2" | grep "^[[:space:]]*${host}:${hipri}:")
+		parsed_jobs="$parsed_jobs
+			$backup_job"
+	done
+	debuglog "Parsed jobs2 looks like this: $parsed_jobs2"
+	debuglog "Parsed jobs looks like this: $parsed_jobs"
 }
