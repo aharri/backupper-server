@@ -1,13 +1,12 @@
 #!/bin/sh
 
-# dump options
+# Dump options.
 opts="-a -0 -u"
-# dd options
-#opts="bs=16b seek=1 skip=1 conv=noerror"
 source=wd0
 target=wd1
 target_dir=/mnt
-partitions_to_dump="a d e f"
+partitions_to_dump=
 
-# who to mail
+# Where to send logs to?
+# "email[@address.tld]"
 mailto="root"

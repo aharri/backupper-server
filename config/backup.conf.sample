@@ -1,23 +1,29 @@
 #!/bin/sh
 
-# where and how many backups to keep?
+# Where and how many backups to keep?
+# $keep_backups amount of snapshots
+# will be kept for EACH filter.
 backups=/backups
-keep_backups=5
+keep_backups=3
 
-# who should receive logs? (email)
+# Who should receive logs?
+# "email[@address.tld]"
 mailto="root"
 
-# output (very verbose) debug info?
-debug=NO
+# Output (very verbose) debug info?
+# "YES" to enable.
+debug=
 
-# IO timeout in seconds, 0 disables
+# IO timeout in seconds.
+# 0 to disable.
 io_timeout=600
 
-# minimum gigabytes & inodes to keep available
+# Minimum gigabytes and inodes to keep available.
 minimum_space=3
 minimum_inodes=10000
 
-# power off when finished? leave empty if no
+# Power off when finished?
+# The value will be executed and empty value disables.
 halt="/sbin/halt -p"
 
 # FILTERS
