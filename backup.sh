@@ -159,15 +159,17 @@ for backup_job in $parsed_jobs; do
 
 		for ret in $acceptable_returns; do 
 			if [ "$ret" -eq "$rsync_ret" ]; then
-				log "[SUCCESSFUL] rsync was successful"
-				break
-			else
-				log "[FAILED] exit code was $ret, output was:"
-				log "$output"
-				rm -rf "$new_dir"
-				break
+				if [ "$debug" = "YES" ]; then
+					log "[SUCCESSFUL=${rsync_ret}] rsync was successful"
+				else
+					log "[SUCCESFUL] rsync was succesful"
+				fi
+				continue 2
 			fi
 		done
+		log "[FAILED=${rsync_ret}] output follows:"
+		log "$output"
+		rm -rf "$new_dir"
 	else
 		log "[SKIPPING] machine $machine is currently unavailable"
 	fi
