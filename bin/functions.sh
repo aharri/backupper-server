@@ -217,7 +217,7 @@ parse_jobs()
 
 check_ssh_keyfile()
 {
-	local file=$USER/.ssh/known_hosts
+	local file=$HOME/.ssh/known_hosts
 	
 	if [ ! -f "$file" ]; then
 		return 1
