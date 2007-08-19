@@ -1,11 +1,20 @@
 1) Get a big disc and make one partition to use
-whole disc. Mount it somewhere for example "/backups".
+whole disc. Mount it somewhere, for example "/backups".
 
 2) Configure "config/backup.conf" and "config/dump.conf".
 Check the .sample and their comments for more specific
-documentation.
+documentation. Do "ssh host" for each host you just set up,
+you just need to accept the signature part and you can
+abort the (password) authentication that follows it.
 
 3) You will need a master ssh key. You can use tools/genkey.sh
 to generate it.
 
+That should be it regarding the server part. Now take
+the client from CVS and install it on each host.
 
+# export CVSROOT=[cvs repository]
+# cd /root
+# cvs -q -d"$CVSROOT" co -P backupper-client
+# cd backupper-client/
+# sh install.sh
