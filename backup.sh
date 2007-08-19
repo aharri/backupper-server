@@ -95,6 +95,13 @@ for backup_job in $parsed_jobs; do
 	if [ "$?" -eq 0 ]; then
 		log "machine $machine is alive"
 
+		# Check for incomplete installation.
+		check_ssh_keyfile "$machine"
+		if [ "$?" -ne 0 ]; then
+			log "[SKIPPING] You don't have host key set. \"ssh ${machine}\" and accept signature."
+			break
+		fi
+
 		# Check for existing socket
 		echo "$sockets" | fgrep -q -w -e "$machine"
 		if [ "$?" -ne 0 ]; then

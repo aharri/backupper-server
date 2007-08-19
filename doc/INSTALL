@@ -1,0 +1,11 @@
+1) Get a big disc and make one partition to use
+whole disc. Mount it somewhere for example "/backups".
+
+2) Configure "config/backup.conf" and "config/dump.conf".
+Check the .sample and their comments for more specific
+documentation.
+
+3) You will need a master ssh key. You can use tools/genkey.sh
+to generate it.
+
+

@@ -214,3 +214,15 @@ parse_jobs()
 	debuglog "Parsed jobs2 looks like this: $parsed_jobs2"
 	debuglog "Parsed jobs looks like this: $parsed_jobs"
 }
+
+check_ssh_keyfile()
+{
+	local file=$USER/.ssh/known_hosts
+	
+	if [ ! -f "$file" ]; then
+		return 1
+	fi
+
+	awk '{ print $1 }' "$file" | fgrep -q -w -e "$1"
+	return $?
+}
