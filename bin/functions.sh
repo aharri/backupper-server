@@ -190,7 +190,7 @@ parse_jobs()
 					debuglog "${machine}/${filter_name} is valid ($_valid h) and therefore skipped"
 					continue
 				fi
-				log "[EXPIRED] ${machine}/${filter_name} added to jobs"
+				log "[EXPIRED] ${machine}/${filter_name}"
 			fi
 		fi
 		parsed_jobs2="$parsed_jobs2
@@ -203,11 +203,13 @@ parse_jobs()
 	local hosts=$(echo "$parsed_jobs2" | cut -f 1 -d ':' | sort -u)
 	# Traverse hosts.
 	for host in $hosts; do
+		local filter_name=$(echo "$backup_job" | cut -f 4 -d ':')
 		# Select only jobs with highest priority (= lowest number).
 		local hipri=$(echo "$parsed_jobs2" | grep "^[[:space:]]*${host}:" | cut -f 2 -d ':' | sort -n | head -n 1)
 		backup_job=$(echo "$parsed_jobs2" | grep "^[[:space:]]*${host}:${hipri}:")
 		parsed_jobs="$parsed_jobs
 			$backup_job"
+		log "[ADDED] ${host}/${filter_name}"
 	done
 	debuglog "Parsed jobs2 looks like this: $parsed_jobs2"
 	debuglog "Parsed jobs looks like this: $parsed_jobs"
