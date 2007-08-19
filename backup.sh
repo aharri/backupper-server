@@ -99,7 +99,7 @@ for backup_job in $parsed_jobs; do
 		check_ssh_keyfile "$machine"
 		if [ "$?" -ne 0 ]; then
 			log "[SKIPPING] You don't have host key set. \"ssh ${machine}\" and accept signature."
-			break
+			continue
 		fi
 
 		# Check for existing socket
