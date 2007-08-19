@@ -83,8 +83,6 @@ clean_fs_pid=$!
 log "Launched filesystem cleaner into bg, pid: $clean_fs_pid"
 debuglog "Keeping $minimum_space GB and $minimum_inodes inodes"
 
-sleep 20
-exit
 for backup_job in $parsed_jobs; do
 	machine=$(echo "$backup_job" | cut -f 1 -d ':')
 	filter_name=$(echo "$backup_job" | cut -f 4 -d ':')
@@ -155,13 +153,21 @@ for backup_job in $parsed_jobs; do
 			"${machine}:/" \
 			"${new_dir}/" 2>&1)
 
-		if [ "$?" -eq 0 ]; then
-			log "[SUCCESSFUL] rsync was successful"
-		else
-			log "[FAILED] exit code was ${?}, output was:"
-			log "$output"
-			rm -rf "$new_dir"
-		fi
+		local rsync_ret=$?
+		local ret=
+		local acceptable_returns="0 23 24"
+
+		for ret in $acceptable_returns; do 
+			if [ "$ret" -eq "$rsync_ret" ]; then
+				log "[SUCCESSFUL] rsync was successful"
+				break
+			else
+				log "[FAILED] exit code was $ret, output was:"
+				log "$output"
+				rm -rf "$new_dir"
+				break
+			fi
+		done
 	else
 		log "[SKIPPING] machine $machine is currently unavailable"
 	fi
