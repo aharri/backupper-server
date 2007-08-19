@@ -33,6 +33,7 @@ umask 077
 # paths where to look for installed utilities
 PATH=/root/bin:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
 BASE=$(cd -- "$(dirname -- "$0")"; pwd)
+TMPDIR=$(mktemp -d /tmp/backup.XXXXXXXXX) || exit 1
 
 if [ ! -e "$BASE/config/backup.conf" ]; then
 	echo "Edit configuration: $BASE/config/backup.conf"
@@ -83,13 +84,40 @@ clean_fs_pid=$!
 log "Launched filesystem cleaner into bg, pid: $clean_fs_pid"
 debuglog "Keeping $minimum_space GB and $minimum_inodes inodes"
 
+local sockets=
 for backup_job in $parsed_jobs; do
+
+	local socket="${TMPDIR}/%r.%h:%p"
 	machine=$(echo "$backup_job" | cut -f 1 -d ':')
 	filter_name=$(echo "$backup_job" | cut -f 4 -d ':')
 
 	ping -w 1 -c 1 "${machine}" 1>/dev/null 2>/dev/null
 	if [ "$?" -eq 0 ]; then
 		log "machine $machine is alive"
+
+		# Check for existing socket
+		echo "$sockets" | fgrep -q -w -e "$machine"
+		if [ "$?" -ne 0 ]; then
+			# Open a connection to the remote host and
+			# create a control socket
+			# ssh -S /tmp/ssh_socket -M -N -f host.example.com
+			ssh \
+				-S "$socket" \
+				-M \
+				-N \
+				-l "_backup" \
+				-o PasswordAuthentication=no \
+				-o BatchMode=yes \
+				-i "$ssh_key" \
+				-f "$machine"
+			# FIXME: quit handler
+			if [ "$?" -ne 0 ]; then
+				log "[QUITING] failed to create ssh master socket"
+				break
+			fi
+			sockets="$sockets $machine"
+			debuglog "Created socket for $machine"
+		fi
 
 		last_backup_dir=$(find "${backups}/${machine}/${filter_name}/" \
 			-maxdepth 1 \
@@ -138,10 +166,10 @@ for backup_job in $parsed_jobs; do
 		output=$(rsync \
 			-a \
 			-e "ssh \
-                -o PasswordAuthentication=no \
-                -o BatchMode=yes \
                 -l _backup \
-                -i ${ssh_key}" \
+                -S $socket \
+                -o PasswordAuthentication=no \
+                -o BatchMode=yes" \
 			--rsync-path=/home/_backup/backup_wrapper.sh \
 			--delete-after \
 			--delete-excluded \
@@ -175,15 +203,26 @@ for backup_job in $parsed_jobs; do
 	fi
 done
 
-# mail the results
+# Close sockets.
+# FIXME: quit handler
+for socket in $sockets; do
+	ssh -S "${TMPDIR}/%r.%h:%p" -l "_backup" -O exit "$socket"
+	if [ "$?" -eq 0 ]; then
+		rm "${TMPDIR}/_backup.${socket}:22"
+		debuglog "Removed socket for $socket"
+	fi
+done
+rmdir "$TMPDIR"
+
+# Mail the results.
 if [ -n "$mailto" ]; then
 	echo "$debug_str" | mail -s "Backup log" "$mailto"
 fi
 
-# Remove fs cleaner
+# Remove fs cleaner.
 kill_bg_jobs
 
-# Run dump
+# Run dump.
 $BASE/dumpfs.sh
 
 if [ "$?" -gt 0 ]; then
