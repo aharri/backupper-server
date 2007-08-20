@@ -151,7 +151,7 @@ parse_jobs()
 	local backup_job=
 	local parsed_jobs2=
 	local date=$(date +%Y-%m-%d-%H)
-	#global parsed_jobs
+	parsed_jobs=
 
 	# First parser.
 	for backup_job in $backup_jobs; do
@@ -203,10 +203,10 @@ parse_jobs()
 	local hosts=$(echo "$parsed_jobs2" | cut -f 1 -d ':' | sort -u)
 	# Traverse hosts.
 	for host in $hosts; do
-		local filter_name=$(echo "$backup_job" | cut -f 4 -d ':' | perl -pe 's/\s+/ /g')
 		# Select only jobs with highest priority (= lowest number).
 		local hipri=$(echo "$parsed_jobs2" | grep "^[[:space:]]*${host}:" | cut -f 2 -d ':' | sort -n | head -n 1)
-		backup_job=$(echo "$parsed_jobs2" | grep "^[[:space:]]*${host}:${hipri}:")
+		local backup_job=$(echo "$parsed_jobs2" | grep "^[[:space:]]*${host}:${hipri}:")
+		local filter_name=$(echo "$backup_job" | cut -f 4 -d ':' | perl -pe 's/\s+/ /g')
 		parsed_jobs="$parsed_jobs
 			$backup_job"
 		log "[ADDED] ${host}: ${filter_name}"

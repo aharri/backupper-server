@@ -214,7 +214,7 @@ done
 # FIXME: quit handler
 for socket in $sockets; do
 	ssh -S "${TMPDIR}/%r.%h:%p" -l "_backup" -O exit "$socket"
-	if [ "$?" -eq 0 ]; then
+	if [ -f "${TMPDIR}/_backup.${socket}:22" ]; then
 		rm "${TMPDIR}/_backup.${socket}:22"
 		debuglog "Removed socket for $socket"
 	fi
