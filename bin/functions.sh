@@ -190,7 +190,7 @@ parse_jobs()
 					debuglog "${machine}/${filter_name} is valid ($_valid h) and therefore skipped"
 					continue
 				fi
-				log "[EXPIRED] ${machine}/${filter_name}"
+				log "[EXPIRED] \"${machine}\": ${filter_name}"
 			fi
 		fi
 		parsed_jobs2="$parsed_jobs2
@@ -209,7 +209,7 @@ parse_jobs()
 		local filter_name=$(echo "$backup_job" | cut -f 4 -d ':' | perl -pe 's/\s+/ /g')
 		parsed_jobs="$parsed_jobs
 			$backup_job"
-		log "[ADDED] ${host}: ${filter_name}"
+		log "[ADDED] \"${host}\": ${filter_name}"
 	done
 	debuglog "Parsed jobs2 looks like this: $parsed_jobs2"
 	debuglog "Parsed jobs looks like this: $parsed_jobs"

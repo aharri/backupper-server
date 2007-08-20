@@ -93,7 +93,7 @@ for backup_job in $parsed_jobs; do
 
 	ping -w 1 -c 1 "${machine}" 1>/dev/null 2>/dev/null
 	if [ "$?" -eq 0 ]; then
-		log "machine $machine is alive"
+		log "\"$machine\" is alive"
 
 		# Check for incomplete installation.
 		check_ssh_keyfile "$machine"
@@ -123,7 +123,7 @@ for backup_job in $parsed_jobs; do
 				break
 			fi
 			sockets="$sockets $machine"
-			debuglog "Created socket for $machine"
+			debuglog "Created socket for \"$machine\""
 		fi
 
 		last_backup_dir=$(find "${backups}/${machine}/${filter_name}/" \
@@ -195,9 +195,9 @@ for backup_job in $parsed_jobs; do
 		for ret in $acceptable_returns; do 
 			if [ "$ret" -eq "$rsync_ret" ]; then
 				if [ "$debug" = "YES" ]; then
-					log "[SUCCESSFUL=${rsync_ret}] rsync was successful"
+					log "[SUCCESSFUL=${rsync_ret}] \"${machine}\": $filter_name"
 				else
-					log "[SUCCESFUL] rsync was succesful"
+					log "[SUCCESFUL] \"${machine}\": $filter_name"
 				fi
 				continue 2
 			fi
@@ -206,7 +206,7 @@ for backup_job in $parsed_jobs; do
 		log "$output"
 		rm -rf "$new_dir"
 	else
-		log "[SKIPPING] machine $machine is currently unavailable"
+		log "[SKIPPING] \"$machine\" is currently unavailable"
 	fi
 done
 
