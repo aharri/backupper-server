@@ -26,6 +26,9 @@ minimum_inodes=10000
 # The value will be executed and empty value disables.
 halt="/sbin/halt -p"
 
+# Make dump?
+exec_dump=YES
+
 # FILTERS
 
 # host:priority:expiration:filter_name

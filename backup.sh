@@ -229,8 +229,10 @@ fi
 # Remove fs cleaner.
 kill_bg_jobs
 
-# Run dump.
-$BASE/dumpfs.sh
+# Dump to an external hard drive.
+if [ "$exec_dump" = "YES" ]; then
+	$BASE/dumpfs.sh
+fi
 
 if [ "$?" -gt 0 ]; then
 	debuglog "Dump was not succesful"
