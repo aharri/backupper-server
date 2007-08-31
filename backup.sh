@@ -119,8 +119,8 @@ for backup_job in $parsed_jobs; do
 				-f "$machine"
 			# FIXME: quit handler
 			if [ "$?" -ne 0 ]; then
-				log "[QUITING] failed to create ssh master socket"
-				break
+				log "[SKIPPING] failed to create ssh master socket"
+				continue
 			fi
 			sockets="$sockets $machine"
 			debuglog "Created socket for \"$machine\""
