@@ -178,6 +178,7 @@ for backup_job in $parsed_jobs; do
                 -o PasswordAuthentication=no \
                 -o BatchMode=yes" \
 			--rsync-path=/home/_backup/backup_wrapper.sh \
+			--log-file=${BASE}/logs/last_run.log \
 			--delete-after \
 			--delete-excluded \
 			--numeric-ids \
