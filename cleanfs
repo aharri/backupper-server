@@ -1,0 +1,17 @@
+#!/bin/sh
+# Copyright (c) 2007 Antti Harri <iku@openbsd.fi>
+
+# paths where to look for installed utilities
+PATH=/root/bin:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
+BASE=$(cd -- "$(dirname -- "$0")"; pwd)
+
+if [ ! -e "$BASE/config/backup.conf" ]; then
+    echo "Edit configuration: $BASE/config/backup.conf"
+    exit 1
+fi
+
+# pick up functions & defaults
+. "$BASE/bin/functions.sh"
+. "$BASE/config/backup.conf"
+
+clean_fs # function call

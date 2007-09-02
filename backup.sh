@@ -1,14 +1,17 @@
 #!/bin/sh
-
 # Copyright (c) 2006,2007 Antti Harri <iku@openbsd.fi>
-# All rights reserved
+
+# TODO:
+# - quit handler
 
 ####################################
 # do not edit unless you know what
 # you're actually doing.
 #
 # for configuration check
+# config/filters/
 # config/backup.conf{,.sample}
+# config/dump.conf{,.sample}
 ####################################
 
 # defaults
@@ -79,9 +82,6 @@ if [ -z "$backup_jobs" ]; then log "[QUITING] No backup jobs defined!"; exit 1; 
 parse_jobs
 if [ -z "$parsed_jobs" ]; then log "[QUITING] Nothing to do!"; exit 0; fi
 
-clean_fs &
-clean_fs_pid=$!
-log "Launched filesystem cleaner into bg, pid: $clean_fs_pid"
 debuglog "Keeping $minimum_space GB and $minimum_inodes inodes"
 
 local sockets=
@@ -226,9 +226,6 @@ rmdir "$TMPDIR"
 if [ -n "$mailto" ]; then
 	echo "$debug_str" | mail -s "Backup log" "$mailto"
 fi
-
-# Remove fs cleaner.
-kill_bg_jobs
 
 # Dump to an external hard drive.
 if [ "$exec_dump" = "YES" ]; then

@@ -1,7 +1,5 @@
 #!/bin/sh
-
 # Copyright (c) 2006,2007 Antti Harri <iku@openbsd.fi>
-# All rights reserved
 
 ####################################
 # do not edit unless you know what

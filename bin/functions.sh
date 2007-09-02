@@ -84,16 +84,6 @@ get_inodes_left()
 	inodes_left=`df -i "${backups}" | tail -1 | awk '{ print $7 }'`
 }
 
-kill_bg_jobs()
-{
-	#global clean_fs_pid
-	if [ -n "$clean_fs_pid" ]; then
-		kill -KILL "$clean_fs_pid"
-		clean_fs_pid=
-		log "Killed fs cleaner"
-	fi
-}
-
 # Prevent shutdown before mail is delivered
 quit_handler()
 {
