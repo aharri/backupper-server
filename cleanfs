@@ -1,7 +1,11 @@
 #!/bin/sh
+#
+# $Id: cleanfs,v 1.2 2007/09/05 22:20:01 iku Exp $
+#
 # Copyright (c) 2007 Antti Harri <iku@openbsd.fi>
+#
 
-# paths where to look for installed utilities
+# Paths where to look for installed utilities.
 PATH=/root/bin:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
 BASE=$(cd -- "$(dirname -- "$0")"; pwd)
 
@@ -10,8 +14,8 @@ if [ ! -e "$BASE/config/backup.conf" ]; then
     exit 1
 fi
 
-# pick up functions & defaults
-. "$BASE/bin/functions.sh"
+# Pick up functions & defaults.
+. "$BASE/libexec/functions.sh"
 . "$BASE/config/backup.conf"
 
 clean_fs # function call

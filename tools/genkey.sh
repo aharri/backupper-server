@@ -1,4 +1,9 @@
 #!/bin/sh
+#
+# $Id: genkey.sh,v 1.3 2007/09/05 22:20:01 iku Exp $
+#
+# Copyright (c) 2007 Antti Harri <iku@openbsd.fi>
+#
 
 BASE=$(cd -- "$(dirname -- "$0")"; pwd)
 

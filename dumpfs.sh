@@ -1,5 +1,9 @@
 #!/bin/sh
+#
+# $Id: dumpfs.sh,v 1.6 2007/09/05 22:20:01 iku Exp $
+#
 # Copyright (c) 2006,2007 Antti Harri <iku@openbsd.fi>
+#
 
 ####################################
 # do not edit unless you know what
@@ -28,7 +32,7 @@ if [ ! -e "$BASE/config/dump.conf" ]; then
 fi
 
 # pick up functions & defaults
-. "$BASE/bin/functions.sh"
+. "$BASE/libexec/functions.sh"
 . "$BASE/config/dump.conf"
 
 # sanity check: see if the disks are there, otherwise we quit

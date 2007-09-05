@@ -1,4 +1,9 @@
 #!/bin/sh
+#
+# $Id: functions.sh,v 1.1 2007/09/05 22:20:01 iku Exp $
+#
+# Copyright (c) 2006,2007 Antti Harri <iku@openbsd.fi>
+#
 
 debug_str=
 log()

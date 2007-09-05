@@ -1,11 +1,12 @@
 #	   user: iku
 #	machine: kameli.lan
-#	   tree: /tmp/tmp.leoZK13362/backupper-server
-#	   date: Thu Sep  6 00:53:57 2007
+#	   tree: /tmp/tmp.YWkRC22912/backupper-server
+#	   date: Thu Sep  6 01:09:35 2007
 
 # .
 /set type=file mode=0755
-.               type=dir mode=0700
+.               type=dir
+    .cvsperms       mode=0644
     LICENSE         mode=0644
     backup.sh      
     cleanfs        
@@ -14,18 +15,17 @@
 
 # ./bin
     bin             type=dir
-        functions.sh   
     # ./bin
     ..
 
 
 # ./config
-/set type=file mode=0644
-    config          type=dir mode=0755
+    config          type=dir
         backup.conf.sample
         dump.conf.sample
 
 # ./config/filters
+/set type=file mode=0644
         filters         type=dir mode=0755
             full           
             generic        
@@ -45,6 +45,13 @@
         LICENSE        
         features.txt   
     # ./doc
+    ..
+
+
+# ./libexec
+    libexec         type=dir mode=0755
+        functions.sh   
+    # ./libexec
     ..
 
 

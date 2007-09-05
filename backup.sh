@@ -1,6 +1,9 @@
 #!/bin/sh
+# 
+# $Id: backup.sh,v 1.27 2007/09/05 22:20:01 iku Exp $
+#
 # Copyright (c) 2006,2007 Antti Harri <iku@openbsd.fi>
-
+#
 # TODO:
 # - quit handler
 
@@ -44,7 +47,7 @@ if [ ! -e "$BASE/config/backup.conf" ]; then
 fi
 
 # pick up functions & defaults
-. "$BASE/bin/functions.sh"
+. "$BASE/libexec/functions.sh"
 . "$BASE/config/backup.conf"
 
 # install signal traps
