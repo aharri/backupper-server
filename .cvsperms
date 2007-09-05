@@ -1,7 +1,7 @@
 #	   user: iku
 #	machine: kameli.lan
-#	   tree: /tmp/tmp.YWkRC22912/backupper-server
-#	   date: Thu Sep  6 01:09:35 2007
+#	   tree: /tmp/tmp.NvErJI6571/backupper-server
+#	   date: Thu Sep  6 01:20:42 2007
 
 # .
 /set type=file mode=0755
@@ -62,9 +62,9 @@
 
 
 # ./tools
-/set type=file mode=0755
-    tools           type=dir
-        genkey.sh      
+    tools           type=dir mode=0755
+        README         
+        genkey.sh       mode=0755
     # ./tools
     ..
 
