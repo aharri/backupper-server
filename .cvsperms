@@ -1,0 +1,65 @@
+#	   user: iku
+#	machine: kameli.lan
+#	   tree: /tmp/tmp.leoZK13362/backupper-server
+#	   date: Thu Sep  6 00:53:57 2007
+
+# .
+/set type=file mode=0755
+.               type=dir mode=0700
+    LICENSE         mode=0644
+    backup.sh      
+    cleanfs        
+    dumpfs.sh      
+    kicker         
+
+# ./bin
+    bin             type=dir
+        functions.sh   
+    # ./bin
+    ..
+
+
+# ./config
+/set type=file mode=0644
+    config          type=dir mode=0755
+        backup.conf.sample
+        dump.conf.sample
+
+# ./config/filters
+        filters         type=dir mode=0755
+            full           
+            generic        
+            obsd_basebins  
+            obsd_configs   
+            obsd_userdata  
+        # ./config/filters
+        ..
+
+    # ./config
+    ..
+
+
+# ./doc
+    doc             type=dir mode=0755
+        INSTALL        
+        LICENSE        
+        features.txt   
+    # ./doc
+    ..
+
+
+# ./logs
+    logs            type=dir mode=0755
+    # ./logs
+    ..
+
+
+# ./tools
+/set type=file mode=0755
+    tools           type=dir
+        genkey.sh      
+    # ./tools
+    ..
+
+..
+
