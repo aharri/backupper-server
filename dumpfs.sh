@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: dumpfs.sh,v 1.6 2007/09/05 22:20:01 iku Exp $
+# $Id: dumpfs.sh,v 1.7 2007/09/13 12:10:04 iku Exp $
 #
 # Copyright (c) 2006,2007 Antti Harri <iku@openbsd.fi>
 #
@@ -57,7 +57,7 @@ fi
 log 'Starting dump to a removable drive'
 
 # mount the target directory, this should be listed in fstab
-mount "$target_dir"
+mount -fw "$target_dir"
 
 for partition in $partitions_to_dump; do
 	# dump
