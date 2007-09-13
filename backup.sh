@@ -1,6 +1,6 @@
 #!/bin/sh
 # 
-# $Id: backup.sh,v 1.28 2007/09/13 12:09:51 iku Exp $
+# $Id: backup.sh,v 1.29 2007/09/13 15:02:46 iku Exp $
 #
 # Copyright (c) 2006,2007 Antti Harri <iku@openbsd.fi>
 #
@@ -85,7 +85,14 @@ fi
 # FIXME: exiting here will not mail the logs: create clean up routine
 if [ -z "$backup_jobs" ]; then log "[QUITING] No backup jobs defined!"; exit 1; fi
 parse_jobs
-if [ -z "$parsed_jobs" ]; then log "[QUITING] Nothing to do!"; exit 0; fi
+if [ -z "$parsed_jobs" ]; then 
+	log "[QUITING] Nothing to do!"
+	# Dump to an external hard drive.
+	if [ "$exec_dump" = "YES" ]; then
+		$BASE/dumpfs.sh
+	fi
+	exit 0
+fi
 
 debuglog "Keeping $minimum_space GB and $minimum_inodes inodes"
 
