@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: functions.sh,v 1.1 2007/09/05 22:20:01 iku Exp $
+# $Id: functions.sh,v 1.2 2007/09/13 12:11:44 iku Exp $
 #
 # Copyright (c) 2006,2007 Antti Harri <iku@openbsd.fi>
 #
@@ -54,7 +54,7 @@ clean_fs()
 		done
 
 		if [ -z "$dirs" ]; then
-			log "[ERROR] configuration error. FS cleaner cannot continue"
+			#log "[ERROR] configuration error. FS cleaner cannot continue"
 			exit 1
 		fi
 
@@ -69,8 +69,8 @@ clean_fs()
 			elements=$(echo "$elements"/ | tr -dc '/' | wc -c)
 			dir_to_remove=$(echo "$dir_to_remove" | sort -t '/' -k $elements | head -n 1)
 			_megs=$((space_left / 1024))
-			log "[STATUS] space left ${_megs} MiB / inodes left ${inodes_left}"
-			log "removing old backup: $dir_to_remove"
+			#log "[STATUS] space left ${_megs} MiB / inodes left ${inodes_left}"
+			#log "removing old backup: $dir_to_remove"
 			rm -rf "$dir_to_remove"
 			sleep 2
 		done
