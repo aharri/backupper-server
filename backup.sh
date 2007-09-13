@@ -1,11 +1,13 @@
 #!/bin/sh
 # 
-# $Id: backup.sh,v 1.27 2007/09/05 22:20:01 iku Exp $
+# $Id: backup.sh,v 1.28 2007/09/13 12:09:51 iku Exp $
 #
 # Copyright (c) 2006,2007 Antti Harri <iku@openbsd.fi>
 #
 # TODO:
 # - quit handler
+# - improve logging so output from external programs
+#   will get mailed too
 
 ####################################
 # do not edit unless you know what
