@@ -1,6 +1,6 @@
 #!/bin/sh
 # 
-# $Id: backup.sh,v 1.30 2007/09/14 19:37:10 iku Exp $
+# $Id: backup.sh,v 1.31 2007/09/14 20:10:44 iku Exp $
 #
 # Copyright (c) 2006,2007 Antti Harri <iku@openbsd.fi>
 #
@@ -21,6 +21,7 @@
 ####################################
 
 # defaults
+mount_check=
 backup_jobs=
 backups=/backups
 keep_backups=5
@@ -29,7 +30,7 @@ debug=NO
 io_timeout=600
 minimum_space=3
 minimum_inodes=10000
-
+filters=
 #
 # below this you shouldn't modify
 #
@@ -52,6 +53,15 @@ fi
 # pick up functions & defaults
 . "$BASE/libexec/functions.sh"
 . "$BASE/config/backup.conf"
+
+# Mount point check, avoid trashing discs where
+# backups don't belong to!
+if [ -n "$mount_check" ]; then
+	mount | grep -q "^/dev/${mount_check} "
+	if [ "$?" -ne 0 ]; then
+		log "[QUITING] $mount_check is not mounted currently!"
+	fi
+fi
 
 # install signal traps
 trap : INT
