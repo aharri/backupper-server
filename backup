@@ -1,6 +1,6 @@
 #!/bin/sh
 # 
-# $Id: backup.sh,v 1.31 2007/09/14 20:10:44 iku Exp $
+# $Id: backup,v 1.1 2007/09/14 20:20:23 iku Exp $
 #
 # Copyright (c) 2006,2007 Antti Harri <iku@openbsd.fi>
 #
@@ -8,7 +8,6 @@
 # - quit handler
 # - improve logging so output from external programs
 #   will get mailed too
-# - check for mounted volume; don't trash system disc
 
 ####################################
 # do not edit unless you know what
@@ -100,7 +99,7 @@ if [ -z "$parsed_jobs" ]; then
 	log "[QUITING] Nothing to do!"
 	# Dump to an external hard drive.
 	if [ "$exec_dump" = "YES" ]; then
-		$BASE/dumpfs.sh
+		$BASE/dumpfs
 	fi
 	exit 0
 fi
@@ -252,7 +251,7 @@ fi
 
 # Dump to an external hard drive.
 if [ "$exec_dump" = "YES" ]; then
-	$BASE/dumpfs.sh
+	$BASE/dumpfs
 fi
 
 if [ "$?" -gt 0 ]; then

@@ -8,9 +8,9 @@
 .               type=dir
     .cvsperms       mode=0644
     LICENSE         mode=0644
-    backup.sh      
+    backup         
     cleanfs        
-    dumpfs.sh      
+    dumpfs         
     kicker         
 
 # ./bin
@@ -64,7 +64,7 @@
 # ./tools
     tools           type=dir mode=0755
         README         
-        genkey.sh       mode=0755
+        genkey          mode=0755
     # ./tools
     ..
 

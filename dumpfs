@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: dumpfs.sh,v 1.7 2007/09/13 12:10:04 iku Exp $
+# $Id: dumpfs,v 1.1 2007/09/14 20:20:23 iku Exp $
 #
 # Copyright (c) 2006,2007 Antti Harri <iku@openbsd.fi>
 #
