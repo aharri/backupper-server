@@ -1,31 +1,41 @@
 #!/bin/sh
 #
-# $Id: backup.conf.sample,v 1.10 2007/09/05 22:20:01 iku Exp $
+# $Id: backup.conf.sample,v 1.11 2007/09/14 19:48:54 iku Exp $
 #
 
-# Where and how many backups to keep?
+# mount_check:  check if disc has been mounted or not (partition)
+# backups:      where to store backups (directory)
+# keep_backups: how many backups to keep
+#
 # $keep_backups amount of snapshots
 # will be kept for EACH filter.
+mount_check=wd1d
 backups=/backups
 keep_backups=3
 
 # Who should receive logs?
-# "email[@address.tld]"
+#
+# format is "email[@address.tld]"
 mailto="root"
 
 # Output (very verbose) debug info?
-# "YES" to enable.
+#
+# "YES" to enable
 debug=
 
-# IO timeout in seconds.
+# I/O timeout in seconds.
+#
 # 0 to disable.
 io_timeout=600
 
 # Minimum gigabytes and inodes to keep available.
+#
+# Used by externally launchable clean FS script.
 minimum_space=3
 minimum_inodes=10000
 
 # Power off when finished?
+#
 # The value will be executed and empty value disables.
 halt="/sbin/halt -p"
 
@@ -36,10 +46,10 @@ exec_dump=YES
 
 # host:priority:expiration:filter_name
 # 
-# host: IP or resolvable hostname
-# priority: priority when same host has multiple jobs 
-#           (0 or higher number. Lowest "wins")
-# expiration: how many hours will the snapshot be valid
+# host:        IP or resolvable hostname
+# priority:    priority when same host has multiple jobs 
+#              (0 or higher number. Lowest "wins")
+# expiration:  how many hours will the snapshot be valid
 # filter_name: filter file name under config/filters/
 #
 backup_jobs=
