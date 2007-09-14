@@ -1,6 +1,6 @@
 Extra tools -directory.
 
- * genkey.sh: creates SSH keys
+ * genkey: creates SSH keys
 
 -- 
-$Id: README,v 1.1 2007/09/05 22:20:01 iku Exp $
+$Id: README,v 1.2 2007/09/14 20:14:00 iku Exp $
