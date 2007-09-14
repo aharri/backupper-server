@@ -1,6 +1,6 @@
 #!/bin/sh
 # 
-# $Id: backup.sh,v 1.29 2007/09/13 15:02:46 iku Exp $
+# $Id: backup.sh,v 1.30 2007/09/14 19:37:10 iku Exp $
 #
 # Copyright (c) 2006,2007 Antti Harri <iku@openbsd.fi>
 #
@@ -8,6 +8,7 @@
 # - quit handler
 # - improve logging so output from external programs
 #   will get mailed too
+# - check for mounted volume; don't trash system disc
 
 ####################################
 # do not edit unless you know what
