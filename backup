@@ -1,6 +1,6 @@
 #!/bin/sh
 # 
-# $Id: backup,v 1.1 2007/09/14 20:20:23 iku Exp $
+# $Id: backup,v 1.2 2007/09/22 06:45:50 iku Exp $
 #
 # Copyright (c) 2006,2007 Antti Harri <iku@openbsd.fi>
 #
@@ -20,6 +20,7 @@
 ####################################
 
 # defaults
+mount_ro=YES
 mount_check=
 backup_jobs=
 backups=/backups
@@ -232,6 +233,10 @@ for backup_job in $parsed_jobs; do
 		log "[SKIPPING] \"$machine\" is currently unavailable"
 	fi
 done
+
+if [ "$mount_ro" = "YES" -a -n "$mount_check" ]; then
+	mount -u -r /dev/"$mount_check"
+fi
 
 # Close sockets.
 # FIXME: quit handler

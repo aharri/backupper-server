@@ -1,14 +1,16 @@
 #!/bin/sh
 #
-# $Id: backup.conf.sample,v 1.11 2007/09/14 19:48:54 iku Exp $
+# $Id: backup.conf.sample,v 1.12 2007/09/22 06:45:50 iku Exp $
 #
 
+# mount_ro:     mount read-only after backing up (needs mount_check)
 # mount_check:  check if disc has been mounted or not (partition)
 # backups:      where to store backups (directory)
 # keep_backups: how many backups to keep
 #
 # $keep_backups amount of snapshots
 # will be kept for EACH filter.
+mount_ro=YES
 mount_check=wd1d
 backups=/backups
 keep_backups=3
