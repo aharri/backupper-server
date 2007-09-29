@@ -1,6 +1,6 @@
 #!/bin/sh
 # 
-# $Id: backup,v 1.5 2007/09/29 02:54:06 iku Exp $
+# $Id: backup,v 1.6 2007/09/29 03:08:21 iku Exp $
 #
 # Copyright (c) 2006,2007 Antti Harri <iku@openbsd.fi>
 #
@@ -107,6 +107,12 @@ fi
 
 debuglog "Truncating logs/last_run.log"
 echo -n "" > "${BASE}/logs/last_run.log"
+
+# It needs to be mounted R/W for rsync.
+if [ "$mount_ro" = "YES" -a -n "$mount_check" ]; then
+	debuglog "Mounting $mount_check R/W"
+	mount -u -f -w /dev/"$mount_check"
+fi
 
 local sockets=
 for backup_job in $parsed_jobs; do
@@ -239,6 +245,7 @@ for backup_job in $parsed_jobs; do
 done
 
 if [ "$mount_ro" = "YES" -a -n "$mount_check" ]; then
+	debuglog "Mounting $mount_check R/O"
 	mount -u -r /dev/"$mount_check"
 fi
 
