@@ -1,6 +1,6 @@
 #!/bin/sh
 # 
-# $Id: backup,v 1.3 2007/09/25 00:18:01 iku Exp $
+# $Id: backup,v 1.4 2007/09/29 02:04:46 iku Exp $
 #
 # Copyright (c) 2006,2007 Antti Harri <iku@openbsd.fi>
 #
@@ -72,7 +72,7 @@ ssh_key="$BASE/config/ssh_key"
 
 # section: check for missing programs
 required="
-	rm ls date pax df kill
+	rm ls date df kill
 	ping
 	mail tr ssh find dirname basename tail sort head install wc du bc cut awk
 	rsync"
@@ -169,14 +169,16 @@ for backup_job in $parsed_jobs; do
 		fi
 
 		# Previous backup found -> copy it to be as base.
+		local rsync_last_backup_dir=
 		if [ -n "$last_backup_dir" ]; then
-			(cd "${last_backup_dir}" && pax -r -w -l -p e * "${new_dir}")
-			if [ "$?" -ne 0 ]; then
-				rm -rf "$new_dir"
-				log "[QUITING] Failed to copy."
-				# FIXME: quit handler
-				break
-			fi
+			rsync_last_backup_dir="--link-dest=$last_backup_dir"
+#			(cd "${last_backup_dir}" && pax -r -w -l -p e * "${new_dir}")
+#			if [ "$?" -ne 0 ]; then
+#				rm -rf "$new_dir"
+#				log "[QUITING] Failed to copy."
+#				# FIXME: quit handler
+#				break
+#			fi
 		fi
 
 		local filter_machine=
@@ -208,7 +210,8 @@ for backup_job in $parsed_jobs; do
 			--delete-after \
 			--delete-excluded \
 			--numeric-ids \
-			--timeout $io_timeout \
+			--timeout=$io_timeout \
+			$rsync_last_backup_dir \
 			"$filter_generic" \
 			"$filter_generic_machine" \
 			"$filter_machine" \
