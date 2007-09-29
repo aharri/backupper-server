@@ -1,0 +1,19 @@
+#!/bin/sh
+#
+# $Id: logger,v 1.1 2007/09/29 02:54:06 iku Exp $
+#
+# Copyright (c) 2007 Antti Harri <iku@openbsd.fi>
+#
+
+BASE=$(cd -- "$(dirname -- "$0")"; pwd)
+lockdir="${BASE}/.logger.lock"
+logfile="${BASE}/logs/system.log"
+
+# Prevent race condition. Code from Lasse Collin.
+while ! mkdir "$lockdir" 2> /dev/null ; do 
+	sleep 1
+done
+trap "rmdir \"$lockdir\"" EXIT
+
+# Log parameters
+print "$*" >> "$logfile"

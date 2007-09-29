@@ -1,6 +1,6 @@
 #!/bin/sh
 # 
-# $Id: backup,v 1.4 2007/09/29 02:04:46 iku Exp $
+# $Id: backup,v 1.5 2007/09/29 02:54:06 iku Exp $
 #
 # Copyright (c) 2006,2007 Antti Harri <iku@openbsd.fi>
 #
@@ -105,10 +105,8 @@ if [ -z "$parsed_jobs" ]; then
 	exit 0
 fi
 
-debuglog "Keeping $minimum_space GB and $minimum_inodes inodes"
-
 debuglog "Truncating logs/last_run.log"
-echo -n "" > ${BASE}/logs/last_run.log
+echo -n "" > "${BASE}/logs/last_run.log"
 
 local sockets=
 for backup_job in $parsed_jobs; do
@@ -257,7 +255,8 @@ rmdir "$TMPDIR"
 
 # Mail the results.
 if [ -n "$mailto" ]; then
-	echo "$debug_str" | mail -s "Backup log" "$mailto"
+	#echo "$debug_str" | mail -s "Backup log" "$mailto"
+	mail -s "Backup log" "$mailto" < "${BASE}/logs/system.log" && (echo -n "" > "${BASE}/logs/system.log")
 fi
 
 # Dump to an external hard drive.

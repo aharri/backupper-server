@@ -12,6 +12,7 @@
     cleanfs        
     dumpfs         
     kicker         
+    logger         
 
 # ./bin
     bin             type=dir

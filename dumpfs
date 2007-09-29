@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: dumpfs,v 1.1 2007/09/14 20:20:23 iku Exp $
+# $Id: dumpfs,v 1.2 2007/09/29 02:54:06 iku Exp $
 #
 # Copyright (c) 2006,2007 Antti Harri <iku@openbsd.fi>
 #
@@ -76,6 +76,7 @@ done
 output=$(/sbin/disklabel $source 2>&1)
 log "$output"
 
-echo "$debug_str" | mail -s "Dump log" $mailto
+#echo "$debug_str" | mail -s "Dump log" $mailto
+mail -s "Dump log" "$mailto" < "${BASE}/logs/system.log" && rm -f "${BASE}/logs/system.log"
 
 exit 0

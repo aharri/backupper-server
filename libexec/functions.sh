@@ -1,17 +1,18 @@
 #!/bin/sh
 #
-# $Id: functions.sh,v 1.2 2007/09/13 12:11:44 iku Exp $
+# $Id: functions.sh,v 1.3 2007/09/29 02:54:06 iku Exp $
 #
 # Copyright (c) 2006,2007 Antti Harri <iku@openbsd.fi>
 #
 
-debug_str=
+#debug_str=
 log()
 {
 	local stamp=$(date "+%h %e %H:%M:%S")
 	#global mailto debug_str
 
-	debug_str="${debug_str}\n$stamp ${1}"
+	#debug_str="${debug_str}\n$stamp ${1}"
+	"${BASE}/logger" "$stamp ${1}"
 	test -t 1 # test for stdout
 	if [ "$?" -eq 0 ] || [ -z "$mailto" ]; then
 		echo "$stamp ${1}"
@@ -42,6 +43,8 @@ clean_fs()
 	local _megs=
 	#global machines backups keep_backups space_left minimum_inodes
 
+	debuglog "Keeping $minimum_space GB and $minimum_inodes inodes"
+
 	while : ; do 
 		# build directory variable
 		for host in $hosts; do
@@ -54,7 +57,7 @@ clean_fs()
 		done
 
 		if [ -z "$dirs" ]; then
-			#log "[ERROR] configuration error. FS cleaner cannot continue"
+			log "[ERROR] configuration error. FS cleaner cannot continue"
 			exit 1
 		fi
 
@@ -69,8 +72,8 @@ clean_fs()
 			elements=$(echo "$elements"/ | tr -dc '/' | wc -c)
 			dir_to_remove=$(echo "$dir_to_remove" | sort -t '/' -k $elements | head -n 1)
 			_megs=$((space_left / 1024))
-			#log "[STATUS] space left ${_megs} MiB / inodes left ${inodes_left}"
-			#log "removing old backup: $dir_to_remove"
+			log "[STATUS] space left ${_megs} MiB / inodes left ${inodes_left}"
+			log "removing old backup: $dir_to_remove"
 			rm -rf "$dir_to_remove"
 			sleep 2
 		done
@@ -105,7 +108,7 @@ quit_handler()
 
 	# If we aren't suppose to shutdown machine, we can exit right away
 	if [ -z "$halt" ]; then
-		debuglog "Quiting without waiting"
+		debuglog "[PREV. RUN] Quiting without waiting"
 		exit "$retval"
 	fi
 
@@ -116,12 +119,12 @@ quit_handler()
 	while : ; do 
 		mailq | grep -q empty && break
 		sleep "$_INTERVAL"
-		# log is not visible in mail, because it has been sent already!
-		# it should show up when running interactively though
-		debuglog "Slept $_INTERVAL seconds, mail queue was not empty"
+		# Log is not visible in mail, because it has been sent already!
+		# It should show up in the next session though.
+		debuglog "[PREV. RUN] Slept $_INTERVAL seconds, mail queue was not empty"
 		if [ "$count" -ge "$maxtries" ]; then
 			temp=$((count * _INTERVAL))
-			log "Max tries reached, mail was not delivered in $temp seconds, quiting anyway"
+			log "[PREV. RUN] Max tries reached, mail was not delivered in $temp seconds, quiting anyway"
 			break
 		fi
 		count=$((count + 1))
