@@ -1,13 +1,21 @@
 #!/bin/sh
 #
-# $Id: genkey,v 1.1 2007/09/14 20:14:00 iku Exp $
+# $Id: genkey,v 1.2 2007/09/30 00:58:37 iku Exp $
 #
 # Copyright (c) 2007 Antti Harri <iku@openbsd.fi>
 #
 
-BASE=$(cd -- "$(dirname -- "$0")"; pwd)
+BASE=$(cd -- "$(dirname -- "$0")"; pwd)"/.."
 
-ssh-keygen -N '' -t rsa -f "$BASE/../config/ssh_key"
+# Default umask.
+umask 077
+
+if [ -f "$BASE/config/ssh_key" ]; then
+	echo "$BASE/config/ssh_key already exists!"
+	exit 1
+fi
+
+ssh-keygen -N '' -t rsa -f "$BASE/config/ssh_key"
 
 if [ "$?" -eq 0 ]; then
 	echo "You should now place the public key into clients' authorized_keys"
