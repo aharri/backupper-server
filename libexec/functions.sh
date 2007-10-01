@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: functions.sh,v 1.3 2007/09/29 02:54:06 iku Exp $
+# $Id: functions.sh,v 1.4 2007/10/01 18:39:44 iku Exp $
 #
 # Copyright (c) 2006,2007 Antti Harri <iku@openbsd.fi>
 #
@@ -73,8 +73,10 @@ clean_fs()
 			dir_to_remove=$(echo "$dir_to_remove" | sort -t '/' -k $elements | head -n 1)
 			_megs=$((space_left / 1024))
 			log "[STATUS] space left ${_megs} MiB / inodes left ${inodes_left}"
-			log "removing old backup: $dir_to_remove"
-			rm -rf "$dir_to_remove"
+			if [ -n "$dir_to_remove" ]; then
+				log "removing old backup: $dir_to_remove"
+				rm -rf "$dir_to_remove"
+			fi
 			sleep 2
 		done
 		sleep $_INTERVAL

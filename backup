@@ -1,6 +1,6 @@
 #!/bin/sh
 # 
-# $Id: backup,v 1.7 2007/09/29 18:35:20 iku Exp $
+# $Id: backup,v 1.8 2007/10/01 18:39:44 iku Exp $
 #
 # Copyright (c) 2006,2007 Antti Harri <iku@openbsd.fi>
 #
@@ -74,12 +74,16 @@ required="
 	rm ls date df kill
 	ping
 	mail tr ssh find dirname basename tail sort head install wc du bc cut awk
-	rsync"
+	rsync" # sudo-backup-wrapper"
 
 for util in $required; do
 	foo=$(which $util)
 	if [ "$?" = 0 ]; then
 		debuglog "found util: $foo"
+	elif [ "$util" = "sudo-backup-wrapper" ]; then
+		log "sudo-backup-wrapper is included with this software package."
+		log "Refer to the documentation how to install it approriately."
+		exit 1
 	else
 		log "You are missing $util, please install it"
 		exit 1
