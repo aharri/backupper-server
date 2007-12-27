@@ -1,6 +1,6 @@
 #!/bin/sh
 # 
-# $Id: backup,v 1.8 2007/10/01 18:39:44 iku Exp $
+# $Id: backup,v 1.9 2007/12/27 15:51:02 iku Exp $
 #
 # Copyright (c) 2006,2007 Antti Harri <iku@openbsd.fi>
 #
@@ -105,7 +105,7 @@ if [ -z "$parsed_jobs" ]; then
 	if [ "$exec_dump" = "YES" ]; then
 		$BASE/dumpfs
 	fi
-	exit 0
+	quit_handler
 fi
 
 debuglog "Truncating logs/last_run.log"
@@ -226,10 +226,10 @@ for backup_job in $parsed_jobs; do
 			"${new_dir}/" 2>&1)
 
 		local rsync_ret=$?
-		local ret=
-		local acceptable_returns="0 23 24"
+		local ret
 
-		for ret in $acceptable_returns; do 
+		# Acceptable (= clean) exit codes are: 0, 23 and 24
+		for ret in 0 23 24; do 
 			if [ "$ret" -eq "$rsync_ret" ]; then
 				if [ "$debug" = "YES" ]; then
 					log "[SUCCESSFUL=${rsync_ret}] \"${machine}\": $filter_name"
@@ -249,6 +249,7 @@ done
 
 if [ "$mount_ro" = "YES" -a -n "$mount_check" ]; then
 	debuglog "Mounting $mount_check R/O"
+	sync; sync; sync
 	mount -u -r /dev/"$mount_check"
 fi
 
