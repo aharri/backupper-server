@@ -1,6 +1,6 @@
 #!/bin/sh
 # 
-# $Id: backup,v 1.9 2007/12/27 15:51:02 iku Exp $
+# $Id: backup,v 1.10 2008/02/02 12:42:38 iku Exp $
 #
 # Copyright (c) 2006,2007 Antti Harri <iku@openbsd.fi>
 #
@@ -137,7 +137,7 @@ for backup_job in $parsed_jobs; do
 
 		# Check for existing socket
 		echo "$sockets" | fgrep -q -w -e "$machine"
-		if [ "$?" -ne 0 ]; then
+		if [ "$machine" != "localhost" ] && [ "$?" -ne 0 ]; then
 			# Open a connection to the remote host and
 			# create a control socket
 			# ssh -S /tmp/ssh_socket -M -N -f host.example.com
@@ -179,13 +179,6 @@ for backup_job in $parsed_jobs; do
 		local rsync_last_backup_dir=
 		if [ -n "$last_backup_dir" ]; then
 			rsync_last_backup_dir="--link-dest=$last_backup_dir"
-#			(cd "${last_backup_dir}" && pax -r -w -l -p e * "${new_dir}")
-#			if [ "$?" -ne 0 ]; then
-#				rm -rf "$new_dir"
-#				log "[QUITING] Failed to copy."
-#				# FIXME: quit handler
-#				break
-#			fi
 		fi
 
 		local filter_machine=
@@ -205,25 +198,40 @@ for backup_job in $parsed_jobs; do
 		# Everything ready and initialized!
 		# The following -e specification needs to be indented with spaces
 		# because rsync is crappy!
-		output=$(rsync \
-			-a \
-			-e "ssh \
-                -l _backup \
-                -S $socket \
-                -o PasswordAuthentication=no \
-                -o BatchMode=yes" \
-			--rsync-path=/home/_backup/backup_wrapper.sh \
-			--log-file=${BASE}/logs/last_run.log \
-			--delete-after \
-			--delete-excluded \
-			--numeric-ids \
-			--timeout=$io_timeout \
-			$rsync_last_backup_dir \
-			"$filter_generic" \
-			"$filter_generic_machine" \
-			"$filter_machine" \
-			"${machine}:/" \
-			"${new_dir}/" 2>&1)
+		if [ "$machine" = "localhost" ]; then
+			output=$(rsync \
+				-a \
+				--log-file=${BASE}/logs/last_run.log \
+				--delete-after \
+				--delete-excluded \
+				--numeric-ids \
+				$rsync_last_backup_dir \
+				"$filter_generic" \
+				"$filter_generic_machine" \
+				"$filter_machine" \
+				"/" \
+				"${new_dir}/" 2>&1)
+		else
+			output=$(rsync \
+				-a \
+				-e "ssh \
+                    -l _backup \
+                    -S $socket \
+                    -o PasswordAuthentication=no \
+                    -o BatchMode=yes" \
+				--rsync-path=/home/_backup/backup_wrapper.sh \
+				--log-file=${BASE}/logs/last_run.log \
+				--delete-after \
+				--delete-excluded \
+				--numeric-ids \
+				--timeout=$io_timeout \
+				$rsync_last_backup_dir \
+				"$filter_generic" \
+				"$filter_generic_machine" \
+				"$filter_machine" \
+				"${machine}:/" \
+				"${new_dir}/" 2>&1)
+		fi
 
 		local rsync_ret=$?
 		local ret

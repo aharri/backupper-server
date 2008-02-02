@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: functions.sh,v 1.4 2007/10/01 18:39:44 iku Exp $
+# $Id: functions.sh,v 1.5 2008/02/02 12:42:47 iku Exp $
 #
 # Copyright (c) 2006,2007 Antti Harri <iku@openbsd.fi>
 #
@@ -218,7 +218,11 @@ parse_jobs()
 check_ssh_keyfile()
 {
 	local file=/root/.ssh/known_hosts
-	
+
+	if [ "$1" = "localhost" ]; then
+		return 0
+	fi
+
 	if [ ! -f "$file" ]; then
 		return 1
 	fi
