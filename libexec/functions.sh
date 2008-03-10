@@ -1,32 +1,36 @@
 #!/bin/sh
 #
-# $Id: functions.sh,v 1.5 2008/02/02 12:42:47 iku Exp $
+# $Id: functions.sh,v 1.6 2008/03/10 18:10:13 iku Exp $
 #
-# Copyright (c) 2006,2007 Antti Harri <iku@openbsd.fi>
+# Copyright (c) 2006,2007,2008 Antti Harri <iku@openbsd.fi>
 #
 
-#debug_str=
 log()
 {
 	local stamp=$(date "+%h %e %H:%M:%S")
-	#global mailto debug_str
 
-	#debug_str="${debug_str}\n$stamp ${1}"
-	"${BASE}/logger" "$stamp ${1}"
 	test -t 1 # test for stdout
 	if [ "$?" -eq 0 ] || [ -z "$mailto" ]; then
-		echo "$stamp ${1}"
+		sed "s|^|$stamp |"
 	fi
+	sed "s|^|$stamp |" | "${BASE}/logger"
 }
 
 # debug logging
 debuglog()
 {
-	#global debug
-
 	if [ "$debug" = "YES" ]; then
-		log "$1"
+		cat | log
 	fi
+}
+
+# command logging, same as log but goes into its own file
+# and no stdout output
+cmdlog()
+{
+	local stamp=$(date "+%h %e %H:%M:%S")
+	sed "s|^|$stamp |" | "${BASE}/logger" "${BASE}/logs/cmd.log"
+
 }
 
 clean_fs()
@@ -34,16 +38,16 @@ clean_fs()
 	local _INTERVAL=10
 	local dir=
 	local dirs=
-	local size=$(echo "$minimum_space * 1048576" | bc)
+	local size=$(printf '%s\n' "$minimum_space * 1048576" | bc)
 	local host=
-	local hosts=$(echo "$backup_jobs" | cut -f 1 -d ':' | sort -u)
+	local hosts=$(printf '%s\n' "$backup_jobs" | cut -f 1 -d ':' | sort -u)
 	local num=
 	local dir_to_remove=
 	local elements=
 	local _megs=
 	#global machines backups keep_backups space_left minimum_inodes
 
-	debuglog "Keeping $minimum_space GB and $minimum_inodes inodes"
+	printf '%s\n' "Keeping $minimum_space GB and $minimum_inodes inodes" | debuglog
 
 	while : ; do 
 		# build directory variable
@@ -57,7 +61,7 @@ clean_fs()
 		done
 
 		if [ -z "$dirs" ]; then
-			log "[ERROR] configuration error. FS cleaner cannot continue"
+			printf '%s\n' "[ERROR] configuration error. FS cleaner cannot continue" | log
 			exit 1
 		fi
 
@@ -68,14 +72,16 @@ clean_fs()
 			if [ "$space_left" -gt "$size" ] && \
 			   [ "$inodes_left" -gt "$minimum_inodes" ]; then break; fi
 			dir_to_remove=$(find $dirs -type d -maxdepth 2 -name "????-??-??-??")
-			elements=$(echo "$dir_to_remove" | tail -n 1 | sed 's,/\+,/,g')
-			elements=$(echo "$elements"/ | tr -dc '/' | wc -c)
-			dir_to_remove=$(echo "$dir_to_remove" | sort -t '/' -k $elements | head -n 1)
+			elements=$(printf '%s\n' "$dir_to_remove" | tail -n 1 | sed 's,/\+,/,g')
+			elements=$(printf '%s\n' "$elements"/ | tr -dc '/' | wc -c)
+			dir_to_remove=$(printf '%s\n' "$dir_to_remove" | sort -t '/' -k $elements | head -n 1)
 			_megs=$((space_left / 1024))
-			log "[STATUS] space left ${_megs} MiB / inodes left ${inodes_left}"
+			# Print status only before and after operation to prevent log flooding
 			if [ -n "$dir_to_remove" ]; then
-				log "removing old backup: $dir_to_remove"
+				printf '%s\n' "[STATUS1] left: ${_megs} MiB / ${inodes_left} inodes" | log
+				printf '%s\n' "removing old backup: $dir_to_remove" | log
 				rm -rf "$dir_to_remove"
+				printf '%s\n' "[STATUS2] left: ${_megs} MiB / ${inodes_left} inodes" | log
 			fi
 			sleep 2
 		done
@@ -110,7 +116,7 @@ quit_handler()
 
 	# If we aren't suppose to shutdown machine, we can exit right away
 	if [ -z "$halt" ]; then
-		debuglog "[PREV. RUN] Quiting without waiting"
+		printf '%s\n' "[PREV. RUN] Quiting without waiting" | debuglog
 		exit "$retval"
 	fi
 
@@ -123,10 +129,10 @@ quit_handler()
 		sleep "$_INTERVAL"
 		# Log is not visible in mail, because it has been sent already!
 		# It should show up in the next session though.
-		debuglog "[PREV. RUN] Slept $_INTERVAL seconds, mail queue was not empty"
+		printf '%s\n' "[PREV. RUN] Slept $_INTERVAL seconds, mail queue was not empty" | debuglog
 		if [ "$count" -ge "$maxtries" ]; then
 			temp=$((count * _INTERVAL))
-			log "[PREV. RUN] Max tries reached, mail was not delivered in $temp seconds, quiting anyway"
+			printf '%s\n' "[PREV. RUN] Max tries reached, mail was not delivered in $temp seconds, quiting anyway" | log
 			break
 		fi
 		count=$((count + 1))
@@ -156,20 +162,20 @@ parse_jobs()
 	# First parser.
 	for backup_job in $backup_jobs; do
 		# get vars
-		local machine=$(echo "$backup_job" | cut -f 1 -d ':')
-		local priority=$(echo "$backup_job" | cut -f 2 -d ':')
-		local expiration=$(echo "$backup_job" | cut -f 3 -d ':')
-		local filter_name=$(echo "$backup_job" | cut -f 4 -d ':')
+		local machine=$(printf '%s\n' "$backup_job" | cut -f 1 -d ':')
+		local priority=$(printf '%s\n' "$backup_job" | cut -f 2 -d ':')
+		local expiration=$(printf '%s\n' "$backup_job" | cut -f 3 -d ':')
+		local filter_name=$(printf '%s\n' "$backup_job" | cut -f 4 -d ':')
 
 		if [ ! -d "${backups}/${machine}/${filter_name}/" ]; then
 			mkdir -p "${backups}/${machine}/${filter_name}/"
 			if [ "$?" -ne 0 ]; then
-				log "[QUITING] could not create ${backups}/${machine}/${filter_name}/"
+				printf '%s\n' "[QUITING] could not create ${backups}/${machine}/${filter_name}/" | log
 				# FIXME: use clean up routine & exit
 				return 1
 			fi
-			debuglog "created ${backups}/${machine}/${filter_name}/"
-			debuglog "${machine}/${filter_name} expired and added to jobs (filter was not found)"
+			printf '%s\n' "created ${backups}/${machine}/${filter_name}/" | debuglog
+			printf '%s\n' "${machine}/${filter_name} expired and added to jobs (filter was not found)" | debuglog
 		else 
 			# compare expiration times
 			local last_backup_dir=$(\
@@ -178,7 +184,7 @@ parse_jobs()
 				-name "????-??-??-??" | sort -n | tail -1)
 
 			if [ -n "$last_backup_dir" ]; then
-				debuglog "Checking if expired: $last_backup_dir"
+				printf '%s\n' "Checking if expired: $last_backup_dir" | debuglog
 				local last_backup_time=$(date -j "+%s" $(basename "$last_backup_dir" | sed -e 's/-//g')00)
 				local _now=$(date "+%s")
 				
@@ -187,10 +193,10 @@ parse_jobs()
 				# finally compare!
 				if [ "$((last_backup_time + expiration))" -gt "$_now" ] || [ $(basename "$last_backup_dir") = "$date" ]; then
 					local _valid=$(((last_backup_time + expiration - _now) / 3600))
-					debuglog "${machine}/${filter_name} is valid ($_valid h) and therefore skipped"
+					printf '%s\n' "${machine}/${filter_name} is valid ($_valid h) and therefore skipped" | debuglog
 					continue
 				fi
-				log "[EXPIRED] \"${machine}\": ${filter_name}"
+				printf '%s\n' "[EXPIRED] \"${machine}\": ${filter_name}" | log
 			fi
 		fi
 		parsed_jobs2="$parsed_jobs2
@@ -200,19 +206,19 @@ parse_jobs()
 
 	# Second parser.
 	local host=
-	local hosts=$(echo "$parsed_jobs2" | cut -f 1 -d ':' | sort -u)
+	local hosts=$(printf '%s\n' "$parsed_jobs2" | cut -f 1 -d ':' | sort -u)
 	# Traverse hosts.
 	for host in $hosts; do
 		# Select only jobs with highest priority (= lowest number).
-		local hipri=$(echo "$parsed_jobs2" | grep "^[[:space:]]*${host}:" | cut -f 2 -d ':' | sort -n | head -n 1)
-		local backup_job=$(echo "$parsed_jobs2" | grep "^[[:space:]]*${host}:${hipri}:")
-		local filter_name=$(echo "$backup_job" | cut -f 4 -d ':' | perl -pe 's/\s+/ /g')
+		local hipri=$(printf '%s\n' "$parsed_jobs2" | grep "^[[:space:]]*${host}:" | cut -f 2 -d ':' | sort -n | head -n 1)
+		local backup_job=$(printf '%s\n' "$parsed_jobs2" | grep "^[[:space:]]*${host}:${hipri}:")
+		local filter_name=$(printf '%s\n' "$backup_job" | cut -f 4 -d ':' | perl -pe 's/\s+/ /g')
 		parsed_jobs="$parsed_jobs
 			$backup_job"
-		log "[ADDED] \"${host}\": ${filter_name}"
+		printf '%s\n' "[ADDED] \"${host}\": ${filter_name}" | log
 	done
-	debuglog "Parsed jobs2 looks like this: $parsed_jobs2"
-	debuglog "Parsed jobs looks like this: $parsed_jobs"
+	printf '%s\n' "Parsed jobs2 looks like this: $parsed_jobs2" | debuglog
+	printf '%s\n' "Parsed jobs looks like this: $parsed_jobs" | debuglog
 }
 
 check_ssh_keyfile()

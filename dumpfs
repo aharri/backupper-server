@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: dumpfs,v 1.2 2007/09/29 02:54:06 iku Exp $
+# $Id: dumpfs,v 1.3 2008/03/10 18:10:09 iku Exp $
 #
 # Copyright (c) 2006,2007 Antti Harri <iku@openbsd.fi>
 #
@@ -30,6 +30,9 @@ if [ ! -e "$BASE/config/dump.conf" ]; then
 	echo "Edit configuration: $BASE/config/dump.conf"
 	exit 1
 fi
+
+echo "logging broken, exiting"
+exit
 
 # pick up functions & defaults
 . "$BASE/libexec/functions.sh"

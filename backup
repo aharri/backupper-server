@@ -1,8 +1,8 @@
 #!/bin/sh
 # 
-# $Id: backup,v 1.11 2008/02/09 15:54:25 iku Exp $
+# $Id: backup,v 1.12 2008/03/10 18:10:09 iku Exp $
 #
-# Copyright (c) 2006,2007 Antti Harri <iku@openbsd.fi>
+# Copyright (c) 2006,2007,2008 Antti Harri <iku@openbsd.fi>
 #
 # TODO:
 # - Better quit handling regarding mailing of 
@@ -58,13 +58,13 @@ fi
 if [ -n "$mount_check" ]; then
 	mount | grep -q "^/dev/${mount_check} "
 	if [ "$?" -ne 0 ]; then
-		log "[QUITING] $mount_check is not mounted currently!"
+		printf '%s\n' "[QUITING] $mount_check is not mounted currently!" | log
 	fi
 fi
 
 # install signal traps
 trap : INT
-log "Installed signal traps"
+printf '%s\n' "Installed signal traps" | log
 
 # where is ssh pubkey for root user in remote clients
 ssh_key="$BASE/config/ssh_key"
@@ -79,17 +79,17 @@ required="
 for util in $required; do
 	foo=$(which $util)
 	if [ "$?" = 0 ]; then
-		debuglog "found util: $foo"
+		printf '%s\n' "found util: $foo" | debuglog
 	elif [ "$util" = "sudo-backup-wrapper" ]; then
-		log "sudo-backup-wrapper is included with this software package."
-		log "Refer to the documentation how to install it approriately."
+		printf '%s\n' "sudo-backup-wrapper is included with this software package." | log
+		printf '%s\n' "Refer to the documentation how to install it approriately." | log
 		exit 1
 	else
-		log "You are missing $util, please install it"
+		printf '%s\n' "You are missing $util, please install it" | log
 		exit 1
 	fi
 done
-log "Found all required tools"
+printf '%s\n' "Found all required tools" | log
 
 if [ -f "$BASE/config/filters/generic" ]; then
 	filter_generic=--filter=". $BASE/config/filters/generic"
@@ -97,10 +97,13 @@ fi
 
 # Check jobs
 # FIXME: exiting here will not mail the logs: create clean up routine
-if [ -z "$backup_jobs" ]; then log "[QUITING] No backup jobs defined!"; exit 1; fi
+if [ -z "$backup_jobs" ]; then 
+	printf '%s\n' "[QUITING] No backup jobs defined!" | log
+	exit 1
+fi
 parse_jobs
 if [ -z "$parsed_jobs" ]; then 
-	log "[QUITING] Nothing to do!"
+	printf '%s\n' "[QUITING] Nothing to do!" | log
 	# Dump to an external hard drive.
 	if [ "$exec_dump" = "YES" ]; then
 		$BASE/dumpfs
@@ -108,12 +111,12 @@ if [ -z "$parsed_jobs" ]; then
 	quit_handler
 fi
 
-debuglog "Truncating logs/last_run.log"
+printf '%s\n' "Truncating logs/last_run.log" | debuglog
 echo -n "" > "${BASE}/logs/last_run.log"
 
 # It needs to be mounted R/W for rsync.
 if [ "$mount_ro" = "YES" -a -n "$mount_check" ]; then
-	debuglog "Mounting $mount_check R/W"
+	printf '%s\n' "Mounting $mount_check R/W" | debuglog
 	mount -u -f -w /dev/"$mount_check"
 fi
 
@@ -126,12 +129,12 @@ for backup_job in $parsed_jobs; do
 
 	ping -w 1 -c 1 "${machine}" 1>/dev/null 2>/dev/null
 	if [ "$?" -eq 0 ]; then
-		log "\"$machine\" is alive"
+		printf '%s\n' "\"$machine\" is alive" | log
 
 		# Check for incomplete installation.
 		check_ssh_keyfile "$machine"
 		if [ "$?" -ne 0 ]; then
-			log "[SKIPPING] You don't have host key set. \"ssh ${machine}\" and accept signature."
+			printf '%s\n' "[SKIPPING] You don't have host key set. \"ssh ${machine}\" and accept signature." | log
 			continue
 		fi
 
@@ -152,11 +155,11 @@ for backup_job in $parsed_jobs; do
 				-f "$machine"
 			# FIXME: quit handler
 			if [ "$?" -ne 0 ]; then
-				log "[SKIPPING] failed to create ssh master socket"
+				printf '%s\n' "[SKIPPING] failed to create ssh master socket" | log
 				continue
 			fi
 			sockets="$sockets $machine"
-			debuglog "Created socket for \"$machine\""
+			printf '%s\n' "Created socket for \"$machine\"" | debuglog
 		fi
 
 		last_backup_dir=$(find "${backups}/${machine}/${filter_name}/" \
@@ -167,10 +170,10 @@ for backup_job in $parsed_jobs; do
 		new_dir="${backups}/${machine}/${filter_name}/${date}"
 
 		# create empty dir
-		debuglog "about to create: $new_dir"
+		printf '%s\n' "about to create: $new_dir" | debuglog
 		mkdir "$new_dir"
 		if [ ! -d "$new_dir" ]; then
-			log "[QUITING] failed to create ${new_dir}"
+			printf '%s\n' "[QUITING] failed to create ${new_dir}" | log
 			# FIXME: quit handler
 			break
 		fi
@@ -191,7 +194,7 @@ for backup_job in $parsed_jobs; do
 			filter_machine=--filter=". ${BASE}/config/filters/${filter_name}"
 		else
 			# Non-fatal, continue.
-			log "[SKIPPING] Filter not found. Please check configuration."
+			printf '%s\n' "[SKIPPING] Filter not found. Please check configuration." | log
 			continue
 		fi
 
@@ -199,7 +202,7 @@ for backup_job in $parsed_jobs; do
 		# The following -e specification needs to be indented with spaces
 		# because rsync is crappy!
 		if [ "$machine" = "localhost" ]; then
-			output=$(rsync \
+			rsync \
 				-aii \
 				--log-file=${BASE}/logs/last_run.log \
 				--delete-after \
@@ -210,9 +213,9 @@ for backup_job in $parsed_jobs; do
 				"$filter_generic_machine" \
 				"$filter_machine" \
 				"/" \
-				"${new_dir}/" 2>&1)
+				"${new_dir}/" 2>&1 | cmdlog
 		else
-			output=$(rsync \
+			rsync \
 				-aii \
 				-e "ssh \
                     -l _backup \
@@ -230,7 +233,7 @@ for backup_job in $parsed_jobs; do
 				"$filter_generic_machine" \
 				"$filter_machine" \
 				"${machine}:/" \
-				"${new_dir}/" 2>&1)
+				"${new_dir}/" 2>&1 | cmdlog
 		fi
 
 		local rsync_ret=$?
@@ -240,23 +243,26 @@ for backup_job in $parsed_jobs; do
 		for ret in 0 23 24; do 
 			if [ "$ret" -eq "$rsync_ret" ]; then
 				if [ "$debug" = "YES" ]; then
-					log "[SUCCESSFUL=${rsync_ret}] \"${machine}\": $filter_name"
+					printf '%s\n' "[SUCCESSFUL=${rsync_ret}] \"${machine}\": $filter_name" | log
 				else
-					log "[SUCCESFUL] \"${machine}\": $filter_name"
+					printf '%s\n' "[SUCCESFUL] \"${machine}\": $filter_name" | log
 				fi
+				# Clear command log
+				echo -n '' > "${BASE}/logs/cmd.log"
 				continue 2
 			fi
 		done
-		log "[FAILED=${rsync_ret}] output follows:"
-		log "$output"
+		printf '%s\n' "[FAILED=${rsync_ret}] output follows:" | log
+		cat "${BASE}/logs/cmd.log" | log
+		echo -n '' > "${BASE}/logs/cmd.log"
 		rm -rf "$new_dir"
 	else
-		log "[SKIPPING] \"$machine\" is currently unavailable"
+		printf '%s\n' "[SKIPPING] \"$machine\" is currently unavailable" | log
 	fi
 done
 
 if [ "$mount_ro" = "YES" -a -n "$mount_check" ]; then
-	debuglog "Mounting $mount_check R/O"
+	printf '%s\n' "Mounting $mount_check R/O" | debuglog
 	sync; sync; sync
 	mount -u -r /dev/"$mount_check"
 fi
@@ -267,7 +273,7 @@ for socket in $sockets; do
 	ssh -S "${TMPDIR}/%r.%h:%p" -l "_backup" -O exit "$socket"
 	if [ -f "${TMPDIR}/_backup.${socket}:22" ]; then
 		rm "${TMPDIR}/_backup.${socket}:22"
-		debuglog "Removed socket for $socket"
+		printf '%s\n' "Removed socket for $socket" | debuglog
 	fi
 done
 rmdir "$TMPDIR"
@@ -284,7 +290,7 @@ if [ "$exec_dump" = "YES" ]; then
 fi
 
 if [ "$?" -gt 0 ]; then
-	debuglog "Dump was not succesful"
+	printf '%s\n' "Dump was not succesful" | debuglog
 fi
 
 quit_handler
