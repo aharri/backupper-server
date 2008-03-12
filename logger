@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: logger,v 1.2 2008/03/10 18:10:09 iku Exp $
+# $Id: logger,v 1.3 2008/03/12 17:15:02 iku Exp $
 #
 # Copyright (c) 2007 Antti Harri <iku@openbsd.fi>
 #
@@ -20,6 +20,4 @@ done
 trap "rmdir \"$lockdir\"" EXIT
 
 # Log parameters
-while read -r stdin; do
-	cat >> "$logfile"
-done
+cat >> "$logfile"

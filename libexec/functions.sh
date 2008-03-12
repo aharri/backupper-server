@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: functions.sh,v 1.6 2008/03/10 18:10:13 iku Exp $
+# $Id: functions.sh,v 1.7 2008/03/12 17:15:05 iku Exp $
 #
 # Copyright (c) 2006,2007,2008 Antti Harri <iku@openbsd.fi>
 #
@@ -11,9 +11,14 @@ log()
 
 	test -t 1 # test for stdout
 	if [ "$?" -eq 0 ] || [ -z "$mailto" ]; then
-		sed "s|^|$stamp |"
+		local TMP=$(mktemp) || exit 1
+		sed "s|^|$stamp |" > "$TMP"
+		cat "$TMP"
+		"${BASE}/logger" < "$TMP"
+		rm -f "$TMP"
+	else
+		sed "s|^|$stamp |" | "${BASE}/logger"
 	fi
-	sed "s|^|$stamp |" | "${BASE}/logger"
 }
 
 # debug logging
@@ -71,8 +76,7 @@ clean_fs()
 			get_inodes_left
 			if [ "$space_left" -gt "$size" ] && \
 			   [ "$inodes_left" -gt "$minimum_inodes" ]; then break; fi
-			dir_to_remove=$(find $dirs -type d -maxdepth 2 -name "????-??-??-??")
-			elements=$(printf '%s\n' "$dir_to_remove" | tail -n 1 | sed 's,/\+,/,g')
+			elements=$(find $dirs -type d -maxdepth 2 -name "????-??-??-??" | tail -n 1 | sed 's,/\+,/,g')
 			elements=$(printf '%s\n' "$elements"/ | tr -dc '/' | wc -c)
 			dir_to_remove=$(printf '%s\n' "$dir_to_remove" | sort -t '/' -k $elements | head -n 1)
 			_megs=$((space_left / 1024))
