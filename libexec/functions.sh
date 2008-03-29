@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: functions.sh,v 1.7 2008/03/12 17:15:05 iku Exp $
+# $Id: functions.sh,v 1.8 2008/03/29 19:22:08 iku Exp $
 #
 # Copyright (c) 2006,2007,2008 Antti Harri <iku@openbsd.fi>
 #
@@ -55,7 +55,9 @@ clean_fs()
 	printf '%s\n' "Keeping $minimum_space GB and $minimum_inodes inodes" | debuglog
 
 	while : ; do 
+
 		# build directory variable
+		dirs=
 		for host in $hosts; do
 			for dir in "${backups}"/"${host}"/*; do
 				num=$(ls -1d "${dir}"/* 2>/dev/null | wc -l)
@@ -76,9 +78,18 @@ clean_fs()
 			get_inodes_left
 			if [ "$space_left" -gt "$size" ] && \
 			   [ "$inodes_left" -gt "$minimum_inodes" ]; then break; fi
-			elements=$(find $dirs -type d -maxdepth 2 -name "????-??-??-??" | tail -n 1 | sed 's,/\+,/,g')
-			elements=$(printf '%s\n' "$elements"/ | tr -dc '/' | wc -c)
-			dir_to_remove=$(printf '%s\n' "$dir_to_remove" | sort -t '/' -k $elements | head -n 1)
+			printf '[DEBUG_FS] dirs=%s\n' "$dirs" | debuglog
+			elements=$(find $dirs -type d -maxdepth 1 -name "????-??-??-??" | tail -n 1)
+#			printf '[DEBUG_FS] dir_to_remove=%s\n' "$dir_to_remove " | debuglog
+			elements=$(printf '%s\n' "$dir_to_remove" | \
+				sed 's,/\+,/,g;s,$,/,' | \
+				tr -dc '/' | \
+				wc -c)
+			printf '[DEBUG_FS] elements=%s\n' "$elements " | debuglog
+			dir_to_remove=$(find $dirs -type d -maxdepth 1 -name "????-??-??-??" | \
+				sort -t '/' -k $elements | \
+				head -n 1)
+			printf '[DEBUG_FS] dir_to_remove=%s\n' "$dir_to_remove " | debuglog
 			_megs=$((space_left / 1024))
 			# Print status only before and after operation to prevent log flooding
 			if [ -n "$dir_to_remove" ]; then

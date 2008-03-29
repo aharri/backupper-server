@@ -1,6 +1,6 @@
 #!/bin/sh
 # 
-# $Id: backup,v 1.12 2008/03/10 18:10:09 iku Exp $
+# $Id: backup,v 1.13 2008/03/29 19:22:04 iku Exp $
 #
 # Copyright (c) 2006,2007,2008 Antti Harri <iku@openbsd.fi>
 #
@@ -203,8 +203,9 @@ for backup_job in $parsed_jobs; do
 		# because rsync is crappy!
 		if [ "$machine" = "localhost" ]; then
 			rsync \
-				-aii \
+				-a -ii -vv \
 				--log-file=${BASE}/logs/last_run.log \
+				--log-file-format="%i %f" \
 				--delete-after \
 				--delete-excluded \
 				--numeric-ids \
@@ -216,7 +217,7 @@ for backup_job in $parsed_jobs; do
 				"${new_dir}/" 2>&1 | cmdlog
 		else
 			rsync \
-				-aii \
+				-azvvv \
 				-e "ssh \
                     -l _backup \
                     -S $socket \
@@ -224,6 +225,7 @@ for backup_job in $parsed_jobs; do
                     -o BatchMode=yes" \
 				--rsync-path=/home/_backup/backup_wrapper.sh \
 				--log-file=${BASE}/logs/last_run.log \
+				--log-file-format="%i %f" \
 				--delete-after \
 				--delete-excluded \
 				--numeric-ids \
