@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: functions.sh,v 1.8 2008/03/29 19:22:08 iku Exp $
+# $Id: functions.sh,v 1.9 2008/06/07 11:23:28 iku Exp $
 #
 # Copyright (c) 2006,2007,2008 Antti Harri <iku@openbsd.fi>
 #
@@ -190,7 +190,7 @@ parse_jobs()
 				return 1
 			fi
 			printf '%s\n' "created ${backups}/${machine}/${filter_name}/" | debuglog
-			printf '%s\n' "${machine}/${filter_name} expired and added to jobs (filter was not found)" | debuglog
+			printf '%s\n' "${machine}/${filter_name} expired and added to jobs (filter's destination was not found)" | debuglog
 		else 
 			# compare expiration times
 			local last_backup_dir=$(\

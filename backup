@@ -1,6 +1,6 @@
 #!/bin/sh
 # 
-# $Id: backup,v 1.13 2008/03/29 19:22:04 iku Exp $
+# $Id: backup,v 1.14 2008/06/07 11:23:28 iku Exp $
 #
 # Copyright (c) 2006,2007,2008 Antti Harri <iku@openbsd.fi>
 #
@@ -64,10 +64,16 @@ fi
 
 # install signal traps
 trap : INT
-printf '%s\n' "Installed signal traps" | log
+trap "rmdir \"$TMPDIR\"" EXIT
+printf '%s\n' "Installed signal traps: INT EXIT" | log
 
 # where is ssh pubkey for root user in remote clients
 ssh_key="$BASE/config/ssh_key"
+
+local ssh_verbose=
+if [ "$debug" = 'YES' ]; then
+	ssh_verbose='-vv'
+fi
 
 # section: check for missing programs
 required="
@@ -111,8 +117,9 @@ if [ -z "$parsed_jobs" ]; then
 	quit_handler
 fi
 
-printf '%s\n' "Truncating logs/last_run.log" | debuglog
-echo -n "" > "${BASE}/logs/last_run.log"
+printf '%s\n' "Truncating logs/last_run.log logs/cmd.log" | debuglog
+echo -n '' > "${BASE}/logs/last_run.log"
+echo -n '' > "${BASE}/logs/cmd.log"
 
 # It needs to be mounted R/W for rsync.
 if [ "$mount_ro" = "YES" -a -n "$mount_check" ]; then
@@ -121,6 +128,8 @@ if [ "$mount_ro" = "YES" -a -n "$mount_check" ]; then
 fi
 
 local sockets=
+local task_count=0
+local task_successes=0
 for backup_job in $parsed_jobs; do
 
 	local socket="${TMPDIR}/%r.%h:%p"
@@ -129,6 +138,7 @@ for backup_job in $parsed_jobs; do
 
 	ping -w 1 -c 1 "${machine}" 1>/dev/null 2>/dev/null
 	if [ "$?" -eq 0 ]; then
+		task_count=$((task_count + 1))
 		printf '%s\n' "\"$machine\" is alive" | log
 
 		# Check for incomplete installation.
@@ -140,7 +150,7 @@ for backup_job in $parsed_jobs; do
 
 		# Check for existing socket
 		echo "$sockets" | fgrep -q -w -e "$machine"
-		if [ "$machine" != "localhost" ] && [ "$?" -ne 0 ]; then
+		if [ "$?" -ne 0 ] && [ "$machine" != "localhost" ]; then
 			# Open a connection to the remote host and
 			# create a control socket
 			# ssh -S /tmp/ssh_socket -M -N -f host.example.com
@@ -188,7 +198,7 @@ for backup_job in $parsed_jobs; do
 		local filter_machine_generic=
 
 		if [ -f "${BASE}/config/filters/generic_${machine}" ]; then
-			filter_generic_machine=--filter=". ${BASE}/config/filters/generic_${machine}"
+			filter_machine_generic=--filter=". ${BASE}/config/filters/generic_${machine}"
 		fi
 		if [ -f "${BASE}/config/filters/${filter_name}" ]; then
 			filter_machine=--filter=". ${BASE}/config/filters/${filter_name}"
@@ -198,12 +208,14 @@ for backup_job in $parsed_jobs; do
 			continue
 		fi
 
+		local output
 		# Everything ready and initialized!
 		# The following -e specification needs to be indented with spaces
 		# because rsync is crappy!
 		if [ "$machine" = "localhost" ]; then
+#				-a -ii -vv \
 			rsync \
-				-a -ii -vv \
+				-a \
 				--log-file=${BASE}/logs/last_run.log \
 				--log-file-format="%i %f" \
 				--delete-after \
@@ -211,14 +223,15 @@ for backup_job in $parsed_jobs; do
 				--numeric-ids \
 				$rsync_last_backup_dir \
 				"$filter_generic" \
-				"$filter_generic_machine" \
+				"$filter_machine_generic" \
 				"$filter_machine" \
 				"/" \
-				"${new_dir}/" 2>&1 | cmdlog
+				"${new_dir}/" > "${TMPDIR}/rsync_output" 2>&1
 		else
+#				-a -z -ii -vv \
 			rsync \
-				-azvvv \
-				-e "ssh \
+				-a -z \
+				-e "ssh $ssh_verbose \
                     -l _backup \
                     -S $socket \
                     -o PasswordAuthentication=no \
@@ -232,10 +245,10 @@ for backup_job in $parsed_jobs; do
 				--timeout=$io_timeout \
 				$rsync_last_backup_dir \
 				"$filter_generic" \
-				"$filter_generic_machine" \
+				"$filter_machine_generic" \
 				"$filter_machine" \
 				"${machine}:/" \
-				"${new_dir}/" 2>&1 | cmdlog
+				"${new_dir}/" > "${TMPDIR}/rsync_output" 2>&1
 		fi
 
 		local rsync_ret=$?
@@ -244,19 +257,19 @@ for backup_job in $parsed_jobs; do
 		# Acceptable (= clean) exit codes are: 0, 23 and 24
 		for ret in 0 23 24; do 
 			if [ "$ret" -eq "$rsync_ret" ]; then
+				task_successes=$((task_successes + 1))
 				if [ "$debug" = "YES" ]; then
 					printf '%s\n' "[SUCCESSFUL=${rsync_ret}] \"${machine}\": $filter_name" | log
 				else
 					printf '%s\n' "[SUCCESFUL] \"${machine}\": $filter_name" | log
 				fi
-				# Clear command log
-				echo -n '' > "${BASE}/logs/cmd.log"
+				rm -f "${TMPDIR}/rsync_output"
 				continue 2
 			fi
 		done
-		printf '%s\n' "[FAILED=${rsync_ret}] output follows:" | log
-		cat "${BASE}/logs/cmd.log" | log
-		echo -n '' > "${BASE}/logs/cmd.log"
+		printf '[FAILED=%s] output follows:\n' "$rsync_ret" | log
+		cat "${TMPDIR}/rsync_output" | log
+		rm -f "${TMPDIR}/rsync_output"
 		rm -rf "$new_dir"
 	else
 		printf '%s\n' "[SKIPPING] \"$machine\" is currently unavailable" | log
@@ -278,12 +291,11 @@ for socket in $sockets; do
 		printf '%s\n' "Removed socket for $socket" | debuglog
 	fi
 done
-rmdir "$TMPDIR"
 
 # Mail the results.
 if [ -n "$mailto" ]; then
-	#echo "$debug_str" | mail -s "Backup log" "$mailto"
-	mail -s "Backup log" "$mailto" < "${BASE}/logs/system.log" && (echo -n "" > "${BASE}/logs/system.log")
+	hostname=$(hostname)
+	mail -s "[$hostname] Backup log $task_successes/$task_count" "$mailto" < "${BASE}/logs/system.log" && (echo -n "" > "${BASE}/logs/system.log")
 fi
 
 # Dump to an external hard drive.
