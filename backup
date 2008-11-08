@@ -1,6 +1,6 @@
 #!/bin/sh
 # 
-# $Id: backup,v 1.14 2008/06/07 11:23:28 iku Exp $
+# $Id: backup,v 1.15 2008/11/08 07:51:01 iku Exp $
 #
 # Copyright (c) 2006,2007,2008 Antti Harri <iku@openbsd.fi>
 #
@@ -264,6 +264,10 @@ for backup_job in $parsed_jobs; do
 					printf '%s\n' "[SUCCESFUL] \"${machine}\": $filter_name" | log
 				fi
 				rm -f "${TMPDIR}/rsync_output"
+
+				# Create the locate DB
+				#create_db "${machine}/${filter_name}/${date}/" "${backups}/${machine}/${filter_name}/${date}.db"
+
 				continue 2
 			fi
 		done

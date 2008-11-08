@@ -1,0 +1,35 @@
+#!/bin/sh
+#
+# $Id: create_DBs,v 1.1 2008/11/08 07:51:01 iku Exp $
+#
+# Copyright (c) 2008 Antti Harri <iku@openbsd.fi>
+#
+
+BASE=$(cd -- "$(dirname -- "$0")"; pwd)"/.."
+
+# Default umask.
+umask 077
+
+if [ ! -e "$BASE/config/backup.conf" ]; then
+	echo "Edit configuration: $BASE/config/backup.conf"
+	exit 1
+fi
+
+# Pick up functions & defaults.
+. "$BASE/libexec/functions.sh"
+. "$BASE/config/backup.conf"
+
+hosts=$(printf '%s\n' "$backup_jobs" | cut -f 1 -d ':' | sort -u)
+
+cd "${backups}" || exit 1
+
+# (backups) / hosts / filters / snapshots
+for host in $hosts; do
+	for snapshot in "${host}"/*/*; do
+		if [ ! -d "$snapshot" ]; then
+			continue
+		fi
+
+		create_db "${snapshot}/" "${snapshot}.db"
+	done
+done

@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: functions.sh,v 1.9 2008/06/07 11:23:28 iku Exp $
+# $Id: functions.sh,v 1.10 2008/11/08 07:51:01 iku Exp $
 #
 # Copyright (c) 2006,2007,2008 Antti Harri <iku@openbsd.fi>
 #
@@ -250,4 +250,13 @@ check_ssh_keyfile()
 
 	awk '{ print $1 }' "$file" | fgrep -q -w -e "$1"
 	return $?
+}
+
+create_db()
+{
+	# Index only regular files for now.
+	cd "${backups}/" && find "$1/" -type f -print0 | \
+		xargs -0r md5 -r | \
+		sed -e 's/ /:/' | \
+		/usr/libexec/locate.mklocatedb > "$2"
 }
