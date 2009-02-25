@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: functions.sh,v 1.10 2008/11/08 07:51:01 iku Exp $
+# $Id: functions.sh,v 1.11 2009/02/25 09:55:00 iku Exp $
 #
 # Copyright (c) 2006,2007,2008 Antti Harri <iku@openbsd.fi>
 #
@@ -29,15 +29,6 @@ debuglog()
 	fi
 }
 
-# command logging, same as log but goes into its own file
-# and no stdout output
-cmdlog()
-{
-	local stamp=$(date "+%h %e %H:%M:%S")
-	sed "s|^|$stamp |" | "${BASE}/logger" "${BASE}/logs/cmd.log"
-
-}
-
 clean_fs()
 {
 	local _INTERVAL=10
@@ -52,7 +43,7 @@ clean_fs()
 	local _megs=
 	#global machines backups keep_backups space_left minimum_inodes
 
-	printf '%s\n' "Keeping $minimum_space GB and $minimum_inodes inodes" | debuglog
+	printf '%s\n' "Keeping $minimum_space GB and $minimum_inodes inodes available" | debuglog
 
 	while : ; do 
 
@@ -76,6 +67,7 @@ clean_fs()
 			# don't clean the disc if there is enough space & inodes left
 			get_space_left
 			get_inodes_left
+
 			if [ "$space_left" -gt "$size" ] && \
 			   [ "$inodes_left" -gt "$minimum_inodes" ]; then break; fi
 			printf '[DEBUG_FS] dirs=%s\n' "$dirs" | debuglog
@@ -112,7 +104,14 @@ get_space_left()
 get_inodes_left()
 {
 	#global inodes_left
-	inodes_left=`df -i "${backups}" | tail -1 | awk '{ print $7 }'`
+	if [ "$HAVE_BSD_DF" = "Yes" ]; then
+		inodes_left=`df -i "${backups}" | tail -1 | awk '{ print $7 }'`
+	elif [ "$HAVE_GNU_DF" = "Yes" ]; then
+		inodes_left=`df -i "${backups}" | tail -1 | awk '{ print $4 }'`
+	else
+		echo "ERROR NO DF TYPE DEFINED! CHECK opsys.sh!"
+		exit
+	fi
 }
 
 # Prevent shutdown before mail is delivered
@@ -200,9 +199,16 @@ parse_jobs()
 
 			if [ -n "$last_backup_dir" ]; then
 				printf '%s\n' "Checking if expired: $last_backup_dir" | debuglog
-				local last_backup_time=$(date -j "+%s" $(basename "$last_backup_dir" | sed -e 's/-//g')00)
+				if [ "$HAVE_BSD_DATE" = "Yes" ]; then
+					local last_backup_time=$(date -j "+%s" $(basename "$last_backup_dir" | sed -e 's/-//g')00)
+				elif [ "$HAVE_GNU_DATE" = "Yes" ]; then
+					local last_backup_time=$(date -d "$(basename "$last_backup_dir" | sed -r 's/^([0-9]{4})-([0-9]{2})-([0-9]{2})-([0-9]{2})$/\1\2\3 \4/')00" "+%s")
+				else
+					echo "ERROR NO DATE TYPE DEFINED! CHECK opsys.sh!"
+					exit
+				fi
 				local _now=$(date "+%s")
-				
+
 				expiration=$((expiration * 3600))
 
 				# finally compare!
