@@ -260,9 +260,16 @@ check_ssh_keyfile()
 
 create_db()
 {
-	# Index only regular files for now.
-	cd "${backups}/" && find "$1/" -type f -print0 | \
-		xargs -0r md5 -r | \
-		sed -e 's/ /:/' | \
-		/usr/libexec/locate.mklocatedb > "$2"
+	# OpenBSD's Locate can be very slow when indexing (<= 4.5-release at least)
+	if [ "$HAVE_BSD_LOCATE" = "Yes" ]; then
+		# Index only regular files for now.
+		find "$1" -type f -print0 | \
+			xargs -0r md5 -r | \
+			sed -e 's/ /:/' | \
+			/usr/libexec/locate.mklocatedb > "$2"
+	elif [ "$HAVE_MLOCATE" = "Yes" ]; then
+		updatedb --prunepaths "" -l 0 -o "$2" -U "$1"
+	else
+		echo "ERROR NO LOCATE TYPE CONFIGURED! CHECK OPSYS.SH"
+	fi
 }
