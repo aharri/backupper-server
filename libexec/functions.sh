@@ -104,14 +104,7 @@ get_space_left()
 get_inodes_left()
 {
 	#global inodes_left
-	if [ "$HAVE_BSD_DF" = "Yes" ]; then
-		inodes_left=`df -i "${backups}" | tail -1 | awk '{ print $7 }'`
-	elif [ "$HAVE_GNU_DF" = "Yes" ]; then
-		inodes_left=`df -i "${backups}" | tail -1 | awk '{ print $4 }'`
-	else
-		echo "ERROR NO DF TYPE DEFINED! CHECK opsys.sh!"
-		exit
-	fi
+	inodes_left=$(my_df_i "${backups}")
 }
 
 # Prevent shutdown before mail is delivered
@@ -199,14 +192,7 @@ parse_jobs()
 
 			if [ -n "$last_backup_dir" ]; then
 				printf '%s\n' "Checking if expired: $last_backup_dir" | debuglog
-				if [ "$HAVE_BSD_DATE" = "Yes" ]; then
-					local last_backup_time=$(date -j "+%s" $(basename "$last_backup_dir" | sed -e 's/-//g')00)
-				elif [ "$HAVE_GNU_DATE" = "Yes" ]; then
-					local last_backup_time=$(date -d "$(basename "$last_backup_dir" | sed -r 's/^([0-9]{4})-([0-9]{2})-([0-9]{2})-([0-9]{2})$/\1\2\3 \4/')00" "+%s")
-				else
-					echo "ERROR NO DATE TYPE DEFINED! CHECK opsys.sh!"
-					exit
-				fi
+				local last_backup_time=$(my_date_parse $(basename "$last_backup_dir"))
 				local _now=$(date "+%s")
 
 				expiration=$((expiration * 3600))

@@ -28,3 +28,29 @@ configure_envs()
 }
 
 configure_envs
+
+# Linux and OpenBSD have different df -i syntaxes.
+my_df_i()
+{
+	if [ "$HAVE_BSD_DF" = "Yes" ]; then
+		echo $(df -i "$1" | tail -1 | awk '{ print $7 }')
+	elif [ "$HAVE_GNU_DF" = "Yes" ]; then
+		echo $(df -i "$1" | tail -1 | awk '{ print $4 }')
+	else
+		printf "ERROR: No df type defined, check opsys.sh!" >&2
+		exit 1
+	fi
+}
+
+# Linux and OpenBSD have different date time parsing syntaxes.
+my_date_parse()
+{
+	if [ "$HAVE_BSD_DATE" = "Yes" ]; then
+		echo $(date -j $(echo "$1" | sed -e 's/-//g')00 "+%s")
+	elif [ "$HAVE_GNU_DATE" = "Yes" ]; then
+		echo $(date -d "$(echo "$1" | sed -r 's/^([0-9]{4})-([0-9]{2})-([0-9]{2})-([0-9]{2})$/\1\2\3 \4/')00" "+%s")
+	else
+		printf "ERROR: No date type defined, check opsys.sh!" >&2
+		exit 1
+	fi
+}
