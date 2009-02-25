@@ -35,7 +35,7 @@ echo "logging broken, exiting"
 exit
 
 # pick up functions & defaults
-. "$BASE/libexec/functions.sh"
+. "$BASE/share/functions.sh"
 . "$BASE/config/dump.conf"
 
 # sanity check: see if the disks are there, otherwise we quit

@@ -16,8 +16,8 @@ if [ ! -e "$BASE/config/backup.conf" ]; then
 fi
 
 # Pick up functions & defaults.
-. "$BASE/libexec/functions.sh"
-. "$BASE/libexec/opsys.sh"
+. "$BASE/share/functions.sh"
+. "$BASE/share/opsys.sh"
 . "$BASE/config/backup.conf"
 
 hosts=$(printf '%s\n' "$backup_jobs" | cut -f 1 -d ':' | sort -u)

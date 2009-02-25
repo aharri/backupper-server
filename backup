@@ -50,9 +50,9 @@ if [ ! -e "$BASE/config/backup.conf" ]; then
 fi
 
 # Load functions & configuration.
-. "$BASE/libexec/opsys.sh"
-. "$BASE/libexec/helpers.sh"
-. "$BASE/libexec/functions.sh"
+. "$BASE/share/opsys.sh"
+. "$BASE/share/helpers.sh"
+. "$BASE/share/functions.sh"
 . "$BASE/config/backup.conf"
 
 # Call function to parse command line arguments.
