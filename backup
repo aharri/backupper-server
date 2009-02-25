@@ -55,10 +55,6 @@ fi
 . "$BASE/libexec/functions.sh"
 . "$BASE/config/backup.conf"
 
-# Call function to configure the script for the OS
-# we're running on.
-configure_envs
-
 # Call function to parse command line arguments.
 parse_arguments $@
 

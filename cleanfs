@@ -19,6 +19,4 @@ fi
 . "$BASE/libexec/opsys.sh"
 . "$BASE/config/backup.conf"
 
-configure_envs
-
 clean_fs # function call
