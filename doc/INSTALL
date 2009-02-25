@@ -11,12 +11,8 @@ abort the (password) authentication that follows it.
 to generate it.
 
 That should be it regarding the server part. Now take
-the client from CVS and install it on each host.
+the client from the GIT and install it on each host.
 
-# export CVSROOT=[cvs repository]
-# cd /root
-# cvs -q -d"$CVSROOT" co -P backupper-client
-# cd backupper-client/
 # sh install.sh
 
 -- 
