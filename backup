@@ -70,17 +70,17 @@ check_configured_jobs
 backup_loop()
 {
 
-	local ssh_verbose=
+	local ssh_verbose; ssh_verbose=
 	if [ "$debug" = 'YES' ]; then
 		ssh_verbose='-vv'
 	fi
 	
-	local sockets=
-	local task_count=0
-	local task_successes=0
+	local sockets; sockets=
+	local task_count; task_count=0
+	local task_successes; task_successes=0
 	for backup_job in $parsed_jobs; do
 	
-		local socket="${TMPDIR}/%r.%h:%p"
+		local socket; socket="${TMPDIR}/%r.%h:%p"
 		machine=$(echo "$backup_job" | cut -f 1 -d ':')
 		filter_name=$(echo "$backup_job" | cut -f 4 -d ':')
 
@@ -146,7 +146,7 @@ backup_loop()
 		fi
 
 		# Previous backup found -> use it as base.
-		local rsync_last_backup_dir=
+		local rsync_last_backup_dir; rsync_last_backup_dir=
 		if [ -n "$last_backup_dir" ]; then
 			rsync_last_backup_dir="--link-dest=$last_backup_dir"
 		fi
@@ -197,7 +197,7 @@ backup_loop()
 				"${new_dir}/" > "${TMPDIR}/rsync_output" 2>&1
 		fi
 
-		local rsync_ret=$?
+		local rsync_ret; rsync_ret=$?
 		local ret
 
 		# Acceptable (= clean) exit codes are: 0, 23 and 24

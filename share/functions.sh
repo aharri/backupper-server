@@ -7,11 +7,11 @@
 
 log()
 {
-	local stamp=$(date "+%h %e %H:%M:%S")
+	local stamp; stamp=$(date "+%h %e %H:%M:%S")
 
 	test -t 1 # test for stdout
 	if [ "$?" -eq 0 ] || [ -z "$mailto" ]; then
-		local TMP=$(mktemp) || exit 1
+		local TMP; TMP=$(mktemp) || exit 1
 		sed "s|^|$stamp |" > "$TMP"
 		cat "$TMP"
 		"${BASE}/share/logger" < "$TMP"
@@ -31,16 +31,16 @@ debuglog()
 
 clean_fs()
 {
-	local _INTERVAL=10
-	local dir=
-	local dirs=
-	local size=$(printf '%s\n' "$minimum_space * 1048576" | bc)
-	local host=
-	local hosts=$(printf '%s\n' "$backup_jobs" | cut -f 1 -d ':' | sort -u)
-	local num=
-	local dir_to_remove=
-	local elements=
-	local _megs=
+	local _INTERVAL; _INTERVAL=10
+	local dir; dir=
+	local dirs; dirs=
+	local size; size=$(printf '%s\n' "$minimum_space * 1048576" | bc)
+	local host; host=
+	local hosts; hosts=$(printf '%s\n' "$backup_jobs" | cut -f 1 -d ':' | sort -u)
+	local num; num=
+	local dir_to_remove; dir_to_remove=
+	local elements; elements=
+	local _megs; _megs=
 	#global machines backups keep_backups space_left minimum_inodes
 
 	printf '%s\n' "Keeping $minimum_space GB and $minimum_inodes inodes available" | debuglog
@@ -110,10 +110,10 @@ get_inodes_left()
 # Prevent shutdown before mail is delivered
 quit_handler()
 {
-	local retval=0
-	local count=1
-	local maxtries=5
-	local _INTERVAL=60
+	local retval; retval=0
+	local count; count=1
+	local maxtries; maxtries=5
+	local _INTERVAL; _INTERVAL=60
 	local temp
 
 	# Get return value, if defined
@@ -161,18 +161,18 @@ quit_handler()
 
 parse_jobs()
 {
-	local backup_job=
-	local parsed_jobs2=
-	local date=$(date +%Y-%m-%d-%H)
+	local backup_job; backup_job=
+	local parsed_jobs2; parsed_jobs2=
+	local date; date=$(date +%Y-%m-%d-%H)
 	parsed_jobs=
 
 	# First parser.
 	for backup_job in $backup_jobs; do
 		# get vars
-		local machine=$(printf '%s\n' "$backup_job" | cut -f 1 -d ':')
-		local priority=$(printf '%s\n' "$backup_job" | cut -f 2 -d ':')
-		local expiration=$(printf '%s\n' "$backup_job" | cut -f 3 -d ':')
-		local filter_name=$(printf '%s\n' "$backup_job" | cut -f 4 -d ':')
+		local machine; machine=$(printf '%s\n' "$backup_job" | cut -f 1 -d ':')
+		local priority; priority=$(printf '%s\n' "$backup_job" | cut -f 2 -d ':')
+		local expiration; expiration=$(printf '%s\n' "$backup_job" | cut -f 3 -d ':')
+		local filter_name; filter_name=$(printf '%s\n' "$backup_job" | cut -f 4 -d ':')
 
 		if [ ! -d "${backups}/${machine}/${filter_name}/" ]; then
 			mkdir -p "${backups}/${machine}/${filter_name}/"
@@ -185,21 +185,21 @@ parse_jobs()
 			printf '%s\n' "${machine}/${filter_name} expired and added to jobs (filter's destination was not found)" | debuglog
 		else 
 			# compare expiration times
-			local last_backup_dir=$(\
+			local last_backup_dir; last_backup_dir=$(\
 				find "${backups}/${machine}/${filter_name}/" \
 				-maxdepth 1 \
 				-name "????-??-??-??" | sort -n | tail -1)
 
 			if [ -n "$last_backup_dir" ]; then
 				printf '%s\n' "Checking if expired: $last_backup_dir" | debuglog
-				local last_backup_time=$(my_date_parse $(basename "$last_backup_dir"))
-				local _now=$(date "+%s")
+				local last_backup_time; last_backup_time=$(my_date_parse $(basename "$last_backup_dir"))
+				local _now; _now=$(date "+%s")
 
 				expiration=$((expiration * 3600))
 
 				# finally compare!
 				if [ "$((last_backup_time + expiration))" -gt "$_now" ] || [ $(basename "$last_backup_dir") = "$date" ]; then
-					local _valid=$(((last_backup_time + expiration - _now) / 3600))
+					local _valid; _valid=$(((last_backup_time + expiration - _now) / 3600))
 					printf '%s\n' "${machine}/${filter_name} is valid ($_valid h) and therefore skipped" | debuglog
 					continue
 				fi
@@ -212,14 +212,14 @@ parse_jobs()
 	done
 
 	# Second parser.
-	local host=
-	local hosts=$(printf '%s\n' "$parsed_jobs2" | cut -f 1 -d ':' | sort -u)
+	local host; host=
+	local hosts; hosts=$(printf '%s\n' "$parsed_jobs2" | cut -f 1 -d ':' | sort -u)
 	# Traverse hosts.
 	for host in $hosts; do
 		# Select only jobs with highest priority (= lowest number).
-		local hipri=$(printf '%s\n' "$parsed_jobs2" | grep "^[[:space:]]*${host}:" | cut -f 2 -d ':' | sort -n | head -n 1)
-		local backup_job=$(printf '%s\n' "$parsed_jobs2" | grep "^[[:space:]]*${host}:${hipri}:")
-		local filter_name=$(printf '%s\n' "$backup_job" | cut -f 4 -d ':' | perl -pe 's/\s+/ /g')
+		local hipri; hipri=$(printf '%s\n' "$parsed_jobs2" | grep "^[[:space:]]*${host}:" | cut -f 2 -d ':' | sort -n | head -n 1)
+		local backup_job; backup_job=$(printf '%s\n' "$parsed_jobs2" | grep "^[[:space:]]*${host}:${hipri}:")
+		local filter_name; filter_name=$(printf '%s\n' "$backup_job" | cut -f 4 -d ':' | perl -pe 's/\s+/ /g')
 		parsed_jobs="$parsed_jobs
 			$backup_job"
 		printf '%s\n' "[ADDED] \"${host}\": ${filter_name}" | log
@@ -230,7 +230,7 @@ parse_jobs()
 
 check_ssh_keyfile()
 {
-	local file=/root/.ssh/known_hosts
+	local file; file=/root/.ssh/known_hosts
 
 	if [ "$1" = "localhost" ]; then
 		return 0
