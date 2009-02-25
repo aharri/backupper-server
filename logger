@@ -17,7 +17,7 @@ fi
 while ! mkdir "$lockdir" 2> /dev/null ; do 
 	sleep 1
 done
-trap "rmdir \"$lockdir\"" EXIT
+trap "rmdir \"$lockdir\"" 0 1 2 13 15
 
 # Log parameters
 cat >> "$logfile"
