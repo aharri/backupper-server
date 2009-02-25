@@ -87,11 +87,13 @@ backup_loop()
 		local socket="${TMPDIR}/%r.%h:%p"
 		machine=$(echo "$backup_job" | cut -f 1 -d ':')
 		filter_name=$(echo "$backup_job" | cut -f 4 -d ':')
-	
-		ping -w 1 -c 1 "${machine}" 1>/dev/null 2>/dev/null
-		if [ "$?" -ne 0 ]; then
-			printf '%s\n' "[SKIPPING] \"$machine\" is currently unavailable" | log
-			continue 1
+
+		if [ "$machine" != "localhost" ]; then
+			ping -w 1 -c 1 "${machine}" 1>/dev/null 2>/dev/null
+			if [ "$?" -ne 0 ]; then
+				printf '%s\n' "[SKIPPING] \"$machine\" is currently unavailable" | log
+				continue 1
+			fi
 		fi
 
 		printf '%s\n' "Truncating filter file" | debuglog
