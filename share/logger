@@ -5,7 +5,7 @@
 # Copyright (c) 2007 Antti Harri <iku@openbsd.fi>
 #
 
-BASE=$(cd -- "$(dirname -- "$0")"; pwd)
+BASE=$(cd -- "$(dirname -- "$0")"; pwd)/..
 lockdir="${BASE}/.logger.lock"
 logfile="${BASE}/logs/system.log"
 
