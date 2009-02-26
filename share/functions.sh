@@ -71,14 +71,14 @@ clean_fs()
 			if [ "$space_left" -gt "$size" ] && \
 			   [ "$inodes_left" -gt "$minimum_inodes" ]; then break; fi
 			printf '[DEBUG_FS] dirs=%s\n' "$dirs" | debuglog
-			elements=$(find $dirs -type d -maxdepth 1 -name "????-??-??-??" | tail -n 1)
+			elements=$(find $dirs -maxdepth 1 -type d -name "????-??-??-??" | tail -n 1)
 #			printf '[DEBUG_FS] dir_to_remove=%s\n' "$dir_to_remove " | debuglog
 			elements=$(printf '%s\n' "$dir_to_remove" | \
 				sed 's,/\+,/,g;s,$,/,' | \
 				tr -dc '/' | \
 				wc -c)
 			printf '[DEBUG_FS] elements=%s\n' "$elements " | debuglog
-			dir_to_remove=$(find $dirs -type d -maxdepth 1 -name "????-??-??-??" | \
+			dir_to_remove=$(find $dirs -maxdepth 1 -type d -name "????-??-??-??" | \
 				sort -t '/' -k $elements | \
 				head -n 1)
 			printf '[DEBUG_FS] dir_to_remove=%s\n' "$dir_to_remove " | debuglog
