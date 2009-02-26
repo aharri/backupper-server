@@ -14,10 +14,10 @@ log()
 		local TMP; TMP=$(mktemp) || exit 1
 		sed "s|^|$stamp |" > "$TMP"
 		cat "$TMP"
-		"${BASE}/share/logger" < "$TMP"
+		"${BASE}/share/logger.sh" < "$TMP"
 		rm -f "$TMP"
 	else
-		sed "s|^|$stamp |" | "${BASE}/share/logger"
+		sed "s|^|$stamp |" | "${BASE}/share/logger.sh"
 	fi
 }
 
