@@ -12,6 +12,6 @@ PATH=/root/bin:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
 BASE=$(cd -- "$(dirname -- "$0")"; pwd)
 
 while true; do 
-	pgrep -U 0 -x 'cleanfs' || ${BASE}/share/cleanfs
+	pgrep -U 0 -x 'cleanfs.sh' || ${BASE}/share/cleanfs.sh
 	sleep 30
 done
