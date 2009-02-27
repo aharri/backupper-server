@@ -43,9 +43,9 @@ exec_dump=YES
 
 # FILTERS
 
-# host:priority:expiration:filter_name
+# login:priority:expiration:filter_name
 # 
-# host:        IP or resolvable hostname
+# login:       [username@] + IP or resolvable hostname
 # priority:    priority when same host has multiple jobs 
 #              (0 or higher number. Lowest "wins")
 # expiration:  how many hours will the snapshot be valid

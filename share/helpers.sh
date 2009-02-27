@@ -79,3 +79,18 @@ trap_signals()
 	trap "rmdir \"$TMPDIR\"" EXIT
 	printf '%s\n' "Installed signal traps: INT EXIT" | log
 }
+
+# Parse target
+# Returns _target, _user, _host and _login
+parse_target()
+{
+	_target=$(echo "$1" | cut -f 1 -d ':')
+	_host=$(echo "$_target" | cut -f 2 -d '@')
+	echo "$_target" | fgrep -q '@'
+	if [ "$?" -eq 0 ]; then
+		_user=$(echo "$_target" | cut -f 1 -d '@')
+	else
+		_user=$(whoami)
+	fi
+	_login="${_user}@${_host}"
+}

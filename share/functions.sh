@@ -35,8 +35,6 @@ clean_fs()
 	local dir; dir=
 	local dirs; dirs=
 	local size; size=$(printf '%s\n' "$minimum_space * 1048576" | bc)
-	local host; host=
-	local hosts; hosts=$(printf '%s\n' "$backup_jobs" | cut -f 1 -d ':' | sort -u)
 	local num; num=
 	local dir_to_remove; dir_to_remove=
 	local elements; elements=
@@ -48,8 +46,11 @@ clean_fs()
 
 		# build directory variable
 		dirs=
-		for host in $hosts; do
-			for dir in "${backups}"/"${host}"/*; do
+		local job
+		for backup_job in $backup_jobs; do
+			# Get _target, _user, _host and _login
+			parse_target "$backup_job"
+			for dir in "${backups}/${_login}"/*; do
 				num=$(ls -1d "${dir}"/* 2>/dev/null | wc -l)
 				if [ "$num" -gt "$keep_backups" ]; then
 					dirs="$dirs $dir"
@@ -147,10 +148,10 @@ quit_handler()
 	exit "$retval"
 }
 
-# host:priority:expiration:filter_name
+# login:priority:expiration:filter_name
 #
-# host: IP or resolvable hostname
-# priority: priority when same host has multiple jobs
+# login:    [username@] + IP or resolvable hostname
+# priority: priority when same login has multiple jobs
 #           (0 or higher number. Lowest "wins")
 # expiration: how many hours will the snapshot be valid
 # filter_name: filter file name under config/filters/
@@ -166,24 +167,25 @@ parse_jobs()
 	# First parser.
 	for backup_job in $backup_jobs; do
 		# get vars
-		local machine; machine=$(printf '%s\n' "$backup_job" | cut -f 1 -d ':')
 		local priority; priority=$(printf '%s\n' "$backup_job" | cut -f 2 -d ':')
 		local expiration; expiration=$(printf '%s\n' "$backup_job" | cut -f 3 -d ':')
 		local filter_name; filter_name=$(printf '%s\n' "$backup_job" | cut -f 4 -d ':')
+		# Get _target, _user, _host and _login
+		parse_target "$backup_job"
 
-		if [ ! -d "${backups}/${machine}/${filter_name}/" ]; then
-			mkdir -p "${backups}/${machine}/${filter_name}/"
+		if [ ! -d "${backups}/${_login}/${filter_name}/" ]; then
+			mkdir -p "${backups}/${_login}/${filter_name}/"
 			if [ "$?" -ne 0 ]; then
-				printf '%s\n' "[QUITING] could not create ${backups}/${machine}/${filter_name}/" | log
+				printf '%s\n' "[QUITING] could not create ${backups}/${_login}/${filter_name}/" | log
 				# FIXME: use clean up routine & exit
 				return 1
 			fi
-			printf '%s\n' "created ${backups}/${machine}/${filter_name}/" | debuglog
-			printf '%s\n' "${machine}/${filter_name} expired and added to jobs (filter's destination was not found)" | debuglog
+			printf '%s\n' "created ${backups}/${_login}/${filter_name}/" | debuglog
+			printf '%s\n' "${_login}/${filter_name} expired and added to jobs (filter's destination was not found)" | debuglog
 		else 
 			# compare expiration times
 			local last_backup_dir; last_backup_dir=$(\
-				find "${backups}/${machine}/${filter_name}/" \
+				find "${backups}/${_login}/${filter_name}/" \
 				-maxdepth 1 \
 				-name "????-??-??-??" | sort -n | tail -1)
 
@@ -197,10 +199,10 @@ parse_jobs()
 				# finally compare!
 				if [ "$((last_backup_time + expiration))" -gt "$_now" ] || [ $(basename "$last_backup_dir") = "$date" ]; then
 					local _valid; _valid=$(((last_backup_time + expiration - _now) / 3600))
-					printf '%s\n' "${machine}/${filter_name} is valid ($_valid h) and therefore skipped" | debuglog
+					printf '%s\n' "${_login}/${filter_name} is valid ($_valid h) and therefore skipped" | debuglog
 					continue
 				fi
-				printf '%s\n' "[EXPIRED] \"${machine}\": ${filter_name}" | log
+				printf '%s\n' "[EXPIRED] \"${_login}\": ${filter_name}" | log
 			fi
 		fi
 		parsed_jobs2="$parsed_jobs2
@@ -209,17 +211,17 @@ parse_jobs()
 	done
 
 	# Second parser.
-	local host; host=
-	local hosts; hosts=$(printf '%s\n' "$parsed_jobs2" | cut -f 1 -d ':' | sort -u)
-	# Traverse hosts.
-	for host in $hosts; do
+	local login; login=
+	local logins; logins=$(printf '%s\n' "$parsed_jobs2" | cut -f 1 -d ':' | sort -u)
+	# Traverse logins.
+	for login in $logins; do
 		# Select only jobs with highest priority (= lowest number).
-		local hipri; hipri=$(printf '%s\n' "$parsed_jobs2" | grep "^[[:space:]]*${host}:" | cut -f 2 -d ':' | sort -n | head -n 1)
-		local backup_job; backup_job=$(printf '%s\n' "$parsed_jobs2" | grep "^[[:space:]]*${host}:${hipri}:")
+		local hipri; hipri=$(printf '%s\n' "$parsed_jobs2" | grep "^[[:space:]]*${login}:" | cut -f 2 -d ':' | sort -n | head -n 1)
+		local backup_job; backup_job=$(printf '%s\n' "$parsed_jobs2" | grep "^[[:space:]]*${login}:${hipri}:")
 		local filter_name; filter_name=$(printf '%s\n' "$backup_job" | cut -f 4 -d ':' | perl -pe 's/\s+/ /g')
 		parsed_jobs="$parsed_jobs
 			$backup_job"
-		printf '%s\n' "[ADDED] \"${host}\": ${filter_name}" | log
+		printf '%s\n' "[ADDED] \"${login}\": ${filter_name}" | log
 	done
 	printf '%s\n' "Parsed jobs2 looks like this: $parsed_jobs2" | debuglog
 	printf '%s\n' "Parsed jobs looks like this: $parsed_jobs" | debuglog

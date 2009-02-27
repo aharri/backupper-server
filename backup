@@ -42,7 +42,7 @@ ssh_key="$BASE/config/ssh_key"
 
 # Required tools
 required_tools="rm ls date df kill ping mail tr ssh find dirname basename
-	tail sort head install wc du bc cut awk uname rsync"
+	tail sort head install wc du bc cut awk uname whoami rsync"
 
 if [ ! -e "$BASE/config/backup.conf" ]; then
 	echo "Edit configuration: $BASE/config/backup.conf"
@@ -81,13 +81,15 @@ backup_loop()
 	for backup_job in $parsed_jobs; do
 	
 		local socket; socket="${TMPDIR}/%r.%h:%p"
-		machine=$(echo "$backup_job" | cut -f 1 -d ':')
+		# Get _target, _user, _host and _login
+		parse_target "$backup_job"
+
 		filter_name=$(echo "$backup_job" | cut -f 4 -d ':')
 
-		if [ "$machine" != "localhost" ]; then
-			ping -w 1 -c 1 "${machine}" 1>/dev/null 2>/dev/null
+		if [ "$_host" != "localhost" ]; then
+			ping -w 1 -c 1 "${_host}" 1>/dev/null 2>/dev/null
 			if [ "$?" -ne 0 ]; then
-				printf '%s\n' "[SKIPPING] \"$machine\" is currently unavailable" | log
+				printf '%s\n' "[SKIPPING] \"$_host\" is currently unavailable" | log
 				continue 1
 			fi
 		fi
@@ -96,18 +98,18 @@ backup_loop()
 		echo -n '' > "$TMP_filter_file"
 
 		task_count=$((task_count + 1))
-		printf '%s\n' "\"$machine\" is alive" | log
+		printf '%s\n' "\"$_host\" is alive" | log
 
 		# Check for incomplete installation.
-		check_ssh_keyfile "$machine"
+		check_ssh_keyfile "$_host"
 		if [ "$?" -ne 0 ]; then
-			printf '%s\n' "[SKIPPING] You don't have host key set. \"ssh ${machine}\" and accept signature." | log
+			printf '%s\n' "[SKIPPING] You don't have host key set. \"ssh ${_host}\" and accept signature." | log
 			continue
 		fi
 
 		# Check for existing socket
-		echo "$sockets" | fgrep -q -w -e "$machine"
-		if [ "$?" -ne 0 ] && [ "$machine" != "localhost" ]; then
+		echo "$sockets" | fgrep -q -w -e "$_login"
+		if [ "$?" -ne 0 ] && [ "$_host" != "localhost" ]; then
 			# Open a connection to the remote host and
 			# create a control socket
 			# ssh -S /tmp/ssh_socket -M -N -f host.example.com
@@ -115,35 +117,25 @@ backup_loop()
 				-S "$socket" \
 				-M \
 				-N \
-				-l "_backup" \
 				-o PasswordAuthentication=no \
 				-o BatchMode=yes \
 				-i "$ssh_key" \
-				-f "$machine"
+				-f "$_login"
 			# FIXME: quit handler
 			if [ "$?" -ne 0 ]; then
-				printf '%s\n' "[SKIPPING] failed to create ssh master socket" | log
+				printf '%s\n' "[SKIPPING] failed to create ssh master socket for $_login" | log
 				continue
 			fi
-			sockets="$sockets $machine"
-			printf '%s\n' "Created socket for \"$machine\"" | debuglog
+			sockets="$sockets $_login"
+			printf '%s\n' "Created socket for \"$_login\"" | debuglog
 		fi
 
-		last_backup_dir=$(find "${backups}/${machine}/${filter_name}/" \
+		last_backup_dir=$(find "${backups}/${_login}/${filter_name}/" \
 			-maxdepth 1 \
 			-name "????-??-??-??" | sort -n | tail -n 1)
 
 		date=$(date +%Y-%m-%d-%H)
-		new_dir="${backups}/${machine}/${filter_name}/${date}"
-
-		# create empty dir
-		printf '%s\n' "about to create: $new_dir" | debuglog
-		mkdir "$new_dir"
-		if [ ! -d "$new_dir" ]; then
-			printf '%s\n' "[QUITING] failed to create ${new_dir}" | log
-			# FIXME: quit handler
-			break
-		fi
+		new_dir="${backups}/${_login}/${filter_name}/${date}"
 
 		# Previous backup found -> use it as base.
 		local rsync_last_backup_dir; rsync_last_backup_dir=
@@ -158,18 +150,20 @@ backup_loop()
 		fi
 
 		local i
-		for i in "generic" "generic_${machine}" "$filter_name"; do
+		for i in "generic" "generic_${_login}" "$filter_name"; do
 			if [ -f "$BASE/config/filters/$i" ]; then
 				cat "$BASE/config/filters/$i" >> "$TMP_filter_file"
 			fi
 		done
 
 		local output
+		local rsync_ret
 		# Everything ready and initialized!
 		# The following -e specification needs to be indented with spaces
 		# because rsync is crappy!
-		if [ "$machine" = "localhost" ]; then
+		if [ "$_host" = "localhost" ]; then
 			rsync \
+				$rsync_dry_run \
 				-a \
 				--delete-after \
 				--delete-excluded \
@@ -180,9 +174,9 @@ backup_loop()
 				"${new_dir}/" > "${TMPDIR}/rsync_output" 2>&1
 		else
 			rsync \
+				$rsync_dry_run \
 				-a -z \
 				-e "ssh $ssh_verbose \
-                                -l _backup \
                                 -S $socket \
                                 -o PasswordAuthentication=no \
                                 -o BatchMode=yes" \
@@ -193,11 +187,10 @@ backup_loop()
 				--timeout=$io_timeout \
 				--filter=". $TMP_filter_file" \
 				$rsync_last_backup_dir \
-				"${machine}:/" \
+				"${_login}:/" \
 				"${new_dir}/" > "${TMPDIR}/rsync_output" 2>&1
 		fi
-
-		local rsync_ret; rsync_ret=$?
+		rsync_ret=$?
 		local ret
 
 		# Acceptable (= clean) exit codes are: 0, 23 and 24
@@ -205,9 +198,9 @@ backup_loop()
 			if [ "$ret" -eq "$rsync_ret" ]; then
 				task_successes=$((task_successes + 1))
 				if [ "$debug" = "YES" ]; then
-					printf '%s\n' "[SUCCESSFUL=${rsync_ret}] \"${machine}\": $filter_name" | log
+					printf '%s\n' "[SUCCESSFUL=${rsync_ret}] \"${_login}\": $filter_name" | log
 				else
-					printf '%s\n' "[SUCCESFUL] \"${machine}\": $filter_name" | log
+					printf '%s\n' "[SUCCESFUL] \"${_login}\": $filter_name" | log
 				fi
 				rm -f "${TMPDIR}/rsync_output"
 
@@ -224,13 +217,15 @@ backup_loop()
 	done
 	
 	rm -f "$TMP_filter_file"
-	
+
 	# Close sockets.
 	# FIXME: quit handler
 	for socket in $sockets; do
-		ssh -S "${TMPDIR}/%r.%h:%p" -l "_backup" -O exit "$socket" 2>&1 | debuglog
-		if [ -f "${TMPDIR}/_backup.${socket}:22" ]; then
-			rm "${TMPDIR}/_backup.${socket}:22"
+		# Get _target, _user, _host and _login
+		parse_target "$socket"
+		ssh -S "${TMPDIR}/%r.%h:%p" -l "$_user" -O exit "$_host" 2>&1 | debuglog
+		if [ -f "${TMPDIR}/${_user}.${_host}:22" ]; then
+			rm "${TMPDIR}/${_user}.${_host}:22"
 			printf '%s\n' "Removed socket for $socket" | debuglog
 		fi
 	done
