@@ -41,7 +41,6 @@ clean_fs()
 	local dir_to_remove; dir_to_remove=
 	local elements; elements=
 	local _megs; _megs=
-	#global machines backups keep_backups space_left minimum_inodes
 
 	printf '%s\n' "Keeping $minimum_space GB and $minimum_inodes inodes available" | debuglog
 
@@ -98,12 +97,10 @@ clean_fs()
 
 get_space_left()
 {
-	#global space_left
 	space_left=`df -k "${backups}" | tail -1 | awk '{ print $4 }'`
 }
 get_inodes_left()
 {
-	#global inodes_left
 	inodes_left=$(my_df_i "${backups}")
 }
 
