@@ -45,25 +45,27 @@ check_configured_jobs()
 # Show usage options.
 show_usage()
 {
-	echo "$0 [-v|-h]"
+	echo "$0 [-v|-h|-n]"
 	exit 1
 }
 
 # Parse command line arguments.
 parse_arguments()
 {
-	args=$(getopt vh $*)
+	args=$(getopt vhn $*)
 	if [ $? -ne 0 ]; then
 		show_usage
 	fi
 	set -- $args
 	while [ $# -ge 0 ]; do
 		case "$1" in
-		   -v)
-			if [ "$debug" = "YES" ]; then set -x; fi; shift;;
-		   -h)
-			show_usage; shift;;
-		   --)
+				-v)
+					if [ "$debug" = "YES" ]; then set -x; fi; shift;;
+				-h)
+					show_usage; shift;;
+				-n)
+					rsync_dry_run=-n; shift;;
+				--)
 			shift; break;;
 		esac
 	done
