@@ -18,15 +18,15 @@ fi
 # Pick up functions & defaults.
 . "$BASE/share/functions.sh"
 . "$BASE/share/opsys.sh"
+. "$BASE/share/helpers.sh"
 . "$BASE/config/backup.conf"
-
-hosts=$(printf '%s\n' "$backup_jobs" | cut -f 1 -d ':' | sort -u)
 
 cd "${backups}" || exit 1
 
 # (backups) / hosts / filters / snapshots
-for host in $hosts; do
-	cd "${backups}/${host}/" || continue
-
+for backup_job in $backup_jobs; do
+	# Get _target, _user, _host and _login
+	parse_target "$backup_job"
+	cd "${backups}/${_login}/" || continue
 	create_db ./ locate.db
 done
