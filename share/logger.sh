@@ -14,10 +14,10 @@ if [ -n "$1" ]; then
 fi
 
 # Prevent race condition. Code from Lasse Collin.
-trap "test -d \"$lockdir\" && rmdir \"$lockdir\"" 0 1 2 13 15
 while ! mkdir "$lockdir" 2> /dev/null ; do 
 	sleep 1
 done
+trap "rmdir \"$lockdir\"" 0 1 2 13 15
 
 # Log parameters
 cat >> "$logfile"
