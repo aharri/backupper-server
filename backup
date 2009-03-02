@@ -151,7 +151,7 @@ backup_loop()
 		fi
 
 		local i
-		for i in "generic" "generic_${_login}" "$filter_name"; do
+		for i in "generic" "generic:${_login}" "$filter_name"; do
 			if [ -f "$BASE/config/filters/$i" ]; then
 				cat "$BASE/config/filters/$i" >> "$TMP_filter_file"
 			fi
