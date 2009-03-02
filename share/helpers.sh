@@ -76,7 +76,7 @@ parse_arguments()
 				-h)
 					show_usage; shift;;
 				-n)
-					rsync_dry_run=-n; shift;;
+					rsync_opts="$rsync_opts -n"; shift;;
 				--)
 			shift; break;;
 		esac

@@ -17,16 +17,17 @@
 #
 ####################################
 
-# defaults
-backup_jobs=
+# defaults, the same as in backup.conf.sample
 backups=/backups
-keep_backups=5
+keep_backups=3
 mailto="root"
-debug=NO
-io_timeout=600
+debug=
+rsync_opts=
 minimum_space=3
 minimum_inodes=10000
-filters=
+halt="/sbin/halt -p"
+exec_dump=YES
+backup_jobs=
 
 # default umask
 umask 077
@@ -164,7 +165,7 @@ backup_loop()
 		# because rsync is crappy!
 		if [ "$_host" = "localhost" ]; then
 			rsync \
-				$rsync_dry_run \
+				$rsync_opts \
 				-a \
 				--delete-after \
 				--delete-excluded \
@@ -175,7 +176,7 @@ backup_loop()
 				"${new_dir}/" > "${TMPDIR}/rsync_output" 2>&1
 		else
 			rsync \
-				$rsync_dry_run \
+				$rsync_opts \
 				-a -z \
 				-e "ssh $ssh_verbose \
                                 -S $socket \
@@ -185,7 +186,6 @@ backup_loop()
 				--delete-after \
 				--delete-excluded \
 				--numeric-ids \
-				--timeout=$io_timeout \
 				--filter=". $TMP_filter_file" \
 				$rsync_last_backup_dir \
 				"${_login}:/" \

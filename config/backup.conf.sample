@@ -21,10 +21,10 @@ mailto="root"
 # "YES" to enable
 debug=
 
-# I/O timeout in seconds.
-#
-# 0 to disable.
-io_timeout=600
+# Rsync option passing. Use this to pass options
+# directly to rsync. Doesn't override built-ins,
+# only appends more options.
+rsync_opts=
 
 # Minimum gigabytes and inodes to keep available.
 #
