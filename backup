@@ -11,7 +11,7 @@
 ####################################
 # for configuration check
 #
-# config/filters/
+# config/filters{,.sample}/
 # config/backup.conf{,.sample}
 # config/dump.conf{,.sample}
 #
