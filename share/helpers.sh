@@ -42,6 +42,18 @@ check_configured_jobs()
 	fi
 }
 
+# Backup process checking.
+check_backup_process()
+{
+	local lockdir
+	lockdir="${BASE}/.backup.lock"
+	if [ -d "$lockdir" ]; then
+		printf '%s\n' "[QUITING] Process is already running (lock: $lockdir)" | log
+		exit 1
+	fi
+	trap "rmdir \"$lockdir\"" 0 1 2 13 15
+}
+
 # Show usage options.
 show_usage()
 {

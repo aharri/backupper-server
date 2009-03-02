@@ -40,10 +40,6 @@ TMP_filter_file="${TMPDIR}/rsync_filters"
 # where is the ssh pubkey for root user to access remote clients
 ssh_key="$BASE/config/ssh_key"
 
-# Required tools
-required_tools="rm ls date df kill ping mail tr ssh find dirname basename
-	tail sort head install wc du bc cut awk uname whoami rsync"
-
 if [ ! -e "$BASE/config/backup.conf" ]; then
 	echo "Edit configuration: $BASE/config/backup.conf"
 	exit 1
@@ -55,14 +51,19 @@ fi
 . "$BASE/share/functions.sh"
 . "$BASE/config/backup.conf"
 
+# Call function to to check tool requirements.
+required_tools="rm ls date df kill ping mail tr ssh find dirname basename
+tail sort head install wc du bc cut awk uname whoami pgrep rsync"
+check_required_tools
+
+# Check that there aren't other processes running
+check_backup_process
+
 # Call function to parse command line arguments.
 parse_arguments $@
 
 # Call function to install signal traps.
 trap_signals
-
-# Call function to to check tool requirements.
-check_required_tools
 
 # Call function to check and parse backup jobs.
 check_configured_jobs
