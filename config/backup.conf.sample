@@ -33,14 +33,6 @@ rsync_opts=
 minimum_space=3
 minimum_inodes=10000
 
-# Power off when finished?
-#
-# The value will be executed and empty value disables.
-halt="/sbin/halt -p"
-
-# Make dump?
-exec_dump=YES
-
 # FILTERS
 
 # login:priority:expiration:filter_name

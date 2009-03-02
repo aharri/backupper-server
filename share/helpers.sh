@@ -24,7 +24,6 @@ check_required_tools()
 }
 
 # Check all configured backup jobs.
-# FIXME: exiting here will not mail the logs: create clean up routine
 check_configured_jobs()
 {
 	if [ -z "$backup_jobs" ]; then 
@@ -38,20 +37,16 @@ check_configured_jobs()
 		if [ "$exec_dump" = "YES" ]; then
 			$BASE/dumpfs
 		fi
-		quit_handler
 	fi
 }
 
 # Backup process checking.
 check_backup_process()
 {
-	local lockdir
-	lockdir="${BASE}/.backup.lock"
-	if [ -d "$lockdir" ]; then
-		printf '%s\n' "[QUITING] Process is already running (lock: $lockdir)" | log
+	if [ -d "${BASE}/.backup.lock" ]; then
+		printf '%s\n' "[QUITING] Process is already running" | log
 		exit 1
 	fi
-	trap "rmdir \"$lockdir\"" 0 1 2 13 15
 }
 
 # Show usage options.
@@ -84,12 +79,38 @@ parse_arguments()
 
 }
 
-# Install signal traps.
-trap_signals()
+# Prevent shutdown before mail is delivered
+quit_handler()
 {
-	trap : INT
-	trap "rmdir \"$TMPDIR\"" EXIT
-	printf '%s\n' "Installed signal traps: INT EXIT" | log
+
+	# Close sockets.
+	if [ $(ls -1 "$TMPDIR/sockets/"|wc -l) -gt 0 ]; then
+		for socket in "$TMPDIR/sockets/"*; do
+			# Get _target, _user, _host and _login
+			parse_target "$(basename $socket)"
+			ssh -S "$socket" -O exit "$_login" 2>&1 | debuglog
+			test -e "$socket" && printf 'Socket did not seem to close: %s\n' "$socket" | debuglog
+		done
+	fi
+
+	# Mail the results.
+	if [ -n "$mailto" ]; then
+		mail -s "[$(hostname)] Backup log $task_successes/$task_count" "$mailto" < "${BASE}/logs/system.log" && (: > "${BASE}/logs/system.log")
+	fi
+	rm -rf "$TMPDIR"
+	rmdir "${BASE}/.backup.lock"
+}
+
+# Install signal traps and run initialization stuff.
+run_init()
+{
+	TMPDIR=$(mktemp -d /tmp/backup.XXXXXXXXX) || exit 1
+	trap : 2
+	trap 'quit_handler' 0 1 13 15
+	mkdir "$TMPDIR/tempfiles"
+	mkdir "$TMPDIR/sockets"
+	mkdir "${BASE}/.backup.lock"
+	printf '%s\n' "Installed signal traps and set up tmp environment" | log
 }
 
 # Parse target

@@ -38,49 +38,6 @@ get_inodes_left()
 	inodes_left=$(my_df_i "${backups}")
 }
 
-# Prevent shutdown before mail is delivered
-quit_handler()
-{
-	local retval; retval=0
-	local count; count=1
-	local maxtries; maxtries=5
-	local _INTERVAL; _INTERVAL=60
-	local temp
-
-	# Get return value, if defined
-	if [ -n "$1" ]; then
-		retval=$1
-	fi
-
-	# If we aren't suppose to shutdown machine, we can exit right away
-	if [ -z "$halt" ]; then
-		printf '%s\n' "[PREV. RUN] Quiting without waiting" | debuglog
-		exit "$retval"
-	fi
-
-	# allow mail to BECOME VISIBLE!
-	sleep 5
-
-	# Wait for mail queue to become empty
-	while : ; do 
-		mailq | grep -q empty && break
-		sleep "$_INTERVAL"
-		# Log is not visible in mail, because it has been sent already!
-		# It should show up in the next session though.
-		printf '%s\n' "[PREV. RUN] Slept $_INTERVAL seconds, mail queue was not empty" | debuglog
-		if [ "$count" -ge "$maxtries" ]; then
-			temp=$((count * _INTERVAL))
-			printf '%s\n' "[PREV. RUN] Max tries reached, mail was not delivered in $temp seconds, quiting anyway" | log
-			break
-		fi
-		count=$((count + 1))
-	done
-
-	# Halt the machine and exit with the correct return value!
-	$halt
-	exit "$retval"
-}
-
 # login:priority:expiration:filter_name
 #
 # login:    [username@] + IP or resolvable hostname

@@ -4,9 +4,6 @@
 #
 # Copyright (c) 2006,2007,2008,2009 Antti Harri <iku@openbsd.fi>
 #
-# TODO:
-# - Better quit handling regarding mailing of 
-#   output when error occurs.
 
 ####################################
 # for configuration check
@@ -25,9 +22,11 @@ debug=
 rsync_opts=
 minimum_space=3
 minimum_inodes=10000
-halt="/sbin/halt -p"
-exec_dump=YES
 backup_jobs=
+
+# Other variables.
+task_count=0
+task_successes=0
 
 # default umask
 umask 077
@@ -35,8 +34,6 @@ umask 077
 # paths where to look for installed utilities
 PATH=/root/bin:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
 BASE=$(cd -- "$(dirname -- "$0")"; pwd)
-TMPDIR=$(mktemp -d /tmp/backup.XXXXXXXXX) || exit 1
-TMP_filter_file="${TMPDIR}/rsync_filters"
 
 # where is the ssh pubkey for root user to access remote clients
 ssh_key="$BASE/config/ssh_key"
@@ -63,8 +60,8 @@ check_backup_process
 # Call function to parse command line arguments.
 parse_arguments $@
 
-# Call function to install signal traps.
-trap_signals
+# Call function to install signal traps and init other stuff.
+run_init
 
 # Call function to check and parse backup jobs.
 check_configured_jobs
@@ -76,13 +73,12 @@ backup_loop()
 	if [ "$debug" = 'YES' ]; then
 		ssh_verbose='-vv'
 	fi
-	
+
+	local socket
 	local sockets; sockets=
-	local task_count; task_count=0
-	local task_successes; task_successes=0
+	local tmp_filter_file
 	for backup_job in $parsed_jobs; do
 	
-		local socket; socket="${TMPDIR}/%r.%h:%p"
 		# Get _target, _user, _host and _login
 		parse_target "$backup_job"
 
@@ -97,7 +93,8 @@ backup_loop()
 		fi
 
 		printf '%s\n' "Truncating filter file" | debuglog
-		echo -n '' > "$TMP_filter_file"
+		tmp_filter_file="$TMPDIR/tempfiles/filter"
+		echo -n '' > "$tmp_filter_file"
 
 		task_count=$((task_count + 1))
 		printf '%s\n' "\"$_host\" is alive" | log
@@ -110,6 +107,7 @@ backup_loop()
 		fi
 
 		# Check for existing socket
+		socket="${TMPDIR}/sockets/$_login"
 		echo "$sockets" | fgrep -q -w -e "$_login"
 		if [ "$?" -ne 0 ] && [ "$_host" != "localhost" ]; then
 			# Open a connection to the remote host and
@@ -123,7 +121,6 @@ backup_loop()
 				-o BatchMode=yes \
 				-i "$ssh_key" \
 				-f "$_login"
-			# FIXME: quit handler
 			if [ "$?" -ne 0 ]; then
 				printf '%s\n' "[SKIPPING] failed to create ssh master socket for $_login" | log
 				continue
@@ -154,7 +151,7 @@ backup_loop()
 		local i
 		for i in "generic" "generic:${_login}" "$filter_name"; do
 			if [ -f "$BASE/config/filters/$i" ]; then
-				cat "$BASE/config/filters/$i" >> "$TMP_filter_file"
+				cat "$BASE/config/filters/$i" >> "$tmp_filter_file"
 			fi
 		done
 
@@ -170,7 +167,7 @@ backup_loop()
 				--delete-after \
 				--delete-excluded \
 				--numeric-ids \
-				--filter=". $TMP_filter_file" \
+				--filter=". $tmp_filter_file" \
 				$rsync_last_backup_dir \
 				"/" \
 				"${new_dir}/" > "${TMPDIR}/rsync_output" 2>&1
@@ -178,15 +175,12 @@ backup_loop()
 			rsync \
 				$rsync_opts \
 				-a -z \
-				-e "ssh $ssh_verbose \
-                                -S $socket \
-                                -o PasswordAuthentication=no \
-                                -o BatchMode=yes" \
+				-e "ssh $ssh_verbose -S $socket -o PasswordAuthentication=no -o BatchMode=yes" \
 				--rsync-path=/home/_backup/backup_wrapper.sh \
 				--delete-after \
 				--delete-excluded \
 				--numeric-ids \
-				--filter=". $TMP_filter_file" \
+				--filter=". $tmp_filter_file" \
 				$rsync_last_backup_dir \
 				"${_login}:/" \
 				"${new_dir}/" > "${TMPDIR}/rsync_output" 2>&1
@@ -204,10 +198,6 @@ backup_loop()
 					printf '%s\n' "[SUCCESFUL] \"${_login}\": $filter_name" | log
 				fi
 				rm -f "${TMPDIR}/rsync_output"
-
-				# Create the locate DB
-				#create_db "${machine}/${filter_name}/${date}/" "${backups}/${machine}/${filter_name}/${date}.db"
-
 				continue 2
 			fi
 		done
@@ -216,39 +206,7 @@ backup_loop()
 		rm -f "${TMPDIR}/rsync_output"
 		rm -rf "$new_dir"
 	done
-	
-	rm -f "$TMP_filter_file"
-
-	# Close sockets.
-	# FIXME: quit handler
-	for socket in $sockets; do
-		# Get _target, _user, _host and _login
-		parse_target "$socket"
-		ssh -S "${TMPDIR}/%r.%h:%p" -l "$_user" -O exit "$_host" 2>&1 | debuglog
-		if [ -f "${TMPDIR}/${_user}.${_host}:22" ]; then
-			rm "${TMPDIR}/${_user}.${_host}:22"
-			printf '%s\n' "Removed socket for $socket" | debuglog
-		fi
-	done
-	
-	# Mail the results.
-	if [ -n "$mailto" ]; then
-		hostname=$(hostname)
-		mail -s "[$hostname] Backup log $task_successes/$task_count" "$mailto" < "${BASE}/logs/system.log" && (echo -n "" > "${BASE}/logs/system.log")
-	fi
-	
-	
 }
 
 # Finally call the monster!
 backup_loop
-
-# Dump to an external hard drive.
-if [ "$exec_dump" = "YES" ]; then
-	$BASE/dumpfs
-	if [ "$?" -gt 0 ]; then
-		printf '%s\n' "Dump was not succesful" | debuglog
-	fi
-fi
-
-quit_handler
