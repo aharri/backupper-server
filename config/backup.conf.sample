@@ -35,12 +35,13 @@ minimum_inodes=10000
 
 # FILTERS
 
-# login:priority:expiration:filter_name
+# login:priority:expiration:filter_name:command
 # 
-# login:       [username@] + IP or resolvable hostname
-# priority:    priority when same host has multiple jobs 
-#              (0 or higher number. Lowest "wins")
-# expiration:  how many hours will the snapshot be valid
-# filter_name: filter file name under config/filters/
+# login:        [username@] + IP or resolvable hostname
+# priority:     priority when same host has multiple jobs 
+#               (0 or higher number. Lowest "wins")
+# expiration:   how many hours will the snapshot be valid
+# filter_name:  filter file name under config/filters/
+# command_name: command to run on the remote
 #
-backup_jobs=
+backup_jobs="root@foobar.tld:0:24:full:rsync"

@@ -38,13 +38,14 @@ get_inodes_left()
 	inodes_left=$(my_df_i "${backups}")
 }
 
-# login:priority:expiration:filter_name
+# login:priority:expiration:filter_name:command
 #
-# login:    [username@] + IP or resolvable hostname
-# priority: priority when same login has multiple jobs
-#           (0 or higher number. Lowest "wins")
-# expiration: how many hours will the snapshot be valid
-# filter_name: filter file name under config/filters/
+# login:        [username@] + IP or resolvable hostname
+# priority:     priority when same login has multiple jobs
+#               (0 or higher number. Lowest "wins")
+# expiration:   how many hours will the snapshot be valid
+# filter_name:  filter file name under config/filters/
+# command_name: command to run on the remote
 #
 
 parse_jobs()

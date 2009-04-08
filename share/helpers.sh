@@ -114,10 +114,11 @@ run_init()
 }
 
 # Parse target
-# Returns _target, _user, _host and _login
+# Returns _target, _user, _host, _login and _cmd
 parse_target()
 {
 	_target=$(echo "$1" | cut -f 1 -d ':')
+	_cmd=$(echo "$1" | cut -f 5 -d ':')
 	_host=$(echo "$_target" | cut -f 2 -d '@')
 	echo "$_target" | fgrep -q '@'
 	if [ "$?" -eq 0 ]; then

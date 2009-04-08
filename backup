@@ -176,7 +176,7 @@ backup_loop()
 				$rsync_opts \
 				-a -z \
 				-e "ssh $ssh_verbose -S $socket -o PasswordAuthentication=no -o BatchMode=yes" \
-				--rsync-path=/home/_backup/backup_wrapper.sh \
+				--rsync-path="$_cmd" \
 				--delete-after \
 				--delete-excluded \
 				--numeric-ids \
