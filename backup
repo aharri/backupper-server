@@ -120,7 +120,7 @@ backup_loop()
 				-o PasswordAuthentication=no \
 				-o BatchMode=yes \
 				-i "$ssh_key" \
-				-f "$_login"
+				-f "$_login" 2>&1 | debuglog
 			if [ "$?" -ne 0 ]; then
 				printf '%s\n' "[SKIPPING] failed to create ssh master socket for $_login" | log
 				continue
