@@ -16,7 +16,8 @@
 
 # defaults, the same as in backup.conf.sample
 backups=/backups
-keep_backups=3
+min_backups=3
+max_backups=250
 mailto="root"
 debug=
 rsync_opts=

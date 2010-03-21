@@ -43,7 +43,7 @@ clean_fs()
 			parse_target "$backup_job"
 			for dir in "${backups}/${_login}"/*; do
 				num=$(ls -1d "${dir}"/* 2>/dev/null | wc -l)
-				if [ "$num" -gt "$keep_backups" ]; then
+				if [ "$num" -gt "$min_backups" ]; then
 					dirs="$dirs $dir"
 				fi
 			done

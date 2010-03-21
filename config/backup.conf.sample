@@ -4,12 +4,14 @@
 #
 
 # backups:      where to store backups (directory)
-# keep_backups: how many backups to keep
+# min_backups:  minimum backups to keep
+# max_backups:  maximum backups to keep
 #
-# $keep_backups amount of snapshots
+# {$min_backups .. $max_backups} amount of snapshots
 # will be kept for EACH filter.
 backups=/backups
-keep_backups=3
+min_backups=3
+max_backups=250
 
 # Who should receive logs?
 #
