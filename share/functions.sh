@@ -24,9 +24,7 @@ log()
 # debug logging
 debuglog()
 {
-	if [ "$debug" = "YES" ]; then
-		cat | log
-	fi
+	if [ "$debug" = "YES" ]; then log; else exec > /dev/null; fi
 }
 
 get_space_left()
