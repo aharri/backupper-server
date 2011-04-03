@@ -1,0 +1,8 @@
+Server side tools to back up hosts using rsync.
+
+- Supports pull from clients
+- Automatic filesystem cleaner included
+- Polling is possible with high run interval (e.g. 30 mins)
+  together with lowish snapshot expiration (e.g. 1 d)
+- Developed on OpenBSD but run on Linux as well
+- Only rsync and OpenBSD base tools needed
