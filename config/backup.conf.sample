@@ -33,11 +33,11 @@ minimum_inodes=10000
 
 # FILTERS
 
-# src:srcpath:dstpath:priority:expiration:filter:command
+# src:srcpath:dst:dstpath:priority:expiration:filter:command
 # 
 # src:          [username@] + hostname
 # srcpath:      path
-# dstpath:      [username@] + hostname
+# dst:          [username@] + hostname
 # dstpath:      path
 # priority:     priority when same host has multiple jobs 
 #               (0 or higher number. Lowest "wins")
