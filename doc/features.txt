@@ -21,6 +21,3 @@
 
 * Only base of OpenBSD needed and only one 3rd package
   which is net/rsync.
-
--- 
-$Id: features.txt,v 1.4 2007/09/05 22:20:01 iku Exp $

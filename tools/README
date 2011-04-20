@@ -2,6 +2,3 @@ Extra tools -directory.
 
  * create_DBs: creates locate databases
  * genkey: creates SSH keys
-
--- 
-$Id: README,v 1.2 2007/09/14 20:14:00 iku Exp $

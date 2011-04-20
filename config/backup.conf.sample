@@ -1,7 +1,5 @@
 #!/bin/sh
 #
-# $Id: backup.conf.sample,v 1.13 2009/02/25 09:55:00 iku Exp $
-#
 
 # backups:      where to store backups (directory)
 # min_backups:  minimum backups to keep
