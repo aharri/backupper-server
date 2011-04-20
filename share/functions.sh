@@ -62,16 +62,18 @@ parse_jobs()
 
 		case "$backup_mode" in
 		filecopy|pull)
-			test -d "$_dst_dir" || mkdir -p "$_dst_dir"
-			if [ "$?" -ne 0 ]; then
-				printf '%s\n' "[QUITING] could not create ${_dst_dir}" | log
-				# FIXME: use clean up routine & exit
-				return 1
+			if [ ! -d "$_dst_dir" ]; then
+				mkdir -p "$_dst_dir"
+				if [ "$?" -ne 0 ]; then
+					printf '%s\n' "[QUITING] could not create ${_dst_dir}" | log
+					# FIXME: use clean up routine & exit
+					return 1
+				fi
+				printf '%s\n' "created ${_dst_dir}" | debuglog
+				printf '%s\n' "${_src_login}/${_filter} expired and added to job queue (filter's destination was not found)" | debuglog
+				parsed_jobs2=$(openbsd_addel "$parsed_jobs2" "$backup_job")
+				continue
 			fi
-			printf '%s\n' "created ${_dst_dir}" | debuglog
-			printf '%s\n' "${_src_login}/${_filter} expired and added to job queue (filter's destination was not found)" | debuglog
-			parsed_jobs2=$(openbsd_addel "$parsed_jobs2" "$backup_job")
-			continue
 
 			local last_backup_dir; last_backup_dir=$(\
 				find "$_dst_dir" -maxdepth 1 | \
@@ -87,18 +89,27 @@ parse_jobs()
 				-o PasswordAuthentication=no \
 				-o BatchMode=yes \
 				"$_dst_login" \
-				"test -d '${_dst_dir}' || mkdir -p '${_dst_dir}'"
-			if [ "$?" -ne 0 ]; then
-				printf '%s\n' "[QUITING] could not create ${_dst_dir}" | log
-				# FIXME: use clean up routine & exit
-				return 1
+				"test -d '${_dst_dir}'"
+			if [ "$?" -ne "0" ]; then
+				ssh \
+					-S "$socket" \
+					-o PasswordAuthentication=no \
+					-o BatchMode=yes \
+					"$_dst_login" \
+					"mkdir -p '${_dst_dir}'"
+				if [ "$?" -ne 0 ]; then
+					printf '%s\n' "[QUITING] could not create ${_dst_dir}" | log
+					# FIXME: use clean up routine & exit
+					return 1
+				fi
+				printf '%s\n' "created ${_dst_login}:${_dst_dir}" | debuglog
+				printf '%s\n' "${_src_login}/${_filter} expired and added to job queue (filter's destination was not found)" | debuglog
+				parsed_jobs2=$(openbsd_addel "$parsed_jobs2" "$backup_job")
+				continue
 			fi
-			printf '%s\n' "created ${_dst_login}:${_dst_dir}" | debuglog
-			printf '%s\n' "${_src_login}/${_filter} expired and added to job queue (filter's destination was not found)" | debuglog
-			parsed_jobs2=$(openbsd_addel "$parsed_jobs2" "$backup_job")
-			continue
 
-			local last_backup_dir=$(ssh \
+			local last_backup_dir=$(
+				ssh \
 				-S "$socket" \
 				-o PasswordAuthentication=no \
 				-o BatchMode=yes \
@@ -129,20 +140,16 @@ parse_jobs()
 	done
 
 	# Second parser.
-	echo "XXX: Job priority is currently disabled. Adding all entries into job queue." | debuglog
-	parsed_jobs=$parsed_jobs2
-# 	local login; login=
-# 	local logins; logins=$(printf '%s\n' "$parsed_jobs2" | cut -f 1 -d ':' | sort -u)
-# 	# Traverse logins.
-# 	for login in $logins; do
-# 		# Select only jobs with highest priority (= lowest number).
-# 		local hipri; hipri=$(printf '%s\n' "$parsed_jobs2" | grep "^[[:space:]]*${login}:" | cut -f 2 -d ':' | sort -n | head -n 1)
-# 		local backup_job; backup_job=$(printf '%s\n' "$parsed_jobs2" | grep "^[[:space:]]*${login}:${hipri}:")
-# 		local filter_name; filter_name=$(printf '%s\n' "$backup_job" | cut -f 4 -d ':' | perl -pe 's/\s+/ /g')
-# 		parsed_jobs="$parsed_jobs
-# 			$backup_job"
-# 		printf '%s\n' "[ADDED] \"${login}\": ${filter_name}" | log
-# 	done
+	local login=
+	local logins=$(printf '%s\n' "$parsed_jobs2" | cut -f 1,2,3,4 -d ':' | sort -u)
+	# Traverse logins.
+	for login in $logins; do
+		# Select only jobs with highest priority (= lowest number).
+		local backup_job=$(printf '%s\n' "$parsed_jobs2" | grep "^[[:space:]]*${login}:" | sort -n -k 5 -t ':' | head -n 1)
+		local filter_name=$(printf '%s\n' "$backup_job" | cut -f 7 -d ':')
+		parsed_jobs=$(openbsd_addel "$parsed_jobs" "$backup_job")
+		printf '%s\n' "[ADDED] \"${login}\": ${filter_name}" | log
+	done
 	printf '%s\n' "Parsed jobs2 looks like this: $parsed_jobs2" | debuglog
 	printf '%s\n' "Parsed jobs looks like this: $parsed_jobs" | debuglog
 }

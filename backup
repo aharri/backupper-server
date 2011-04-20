@@ -212,9 +212,9 @@ backup_loop()
 			if [ "$ret" -eq "$rsync_ret" ]; then
 				task_successes=$((task_successes + 1))
 				if [ "$debug" = "YES" ]; then
-					printf '%s\n' "[SUCCESSFUL=${rsync_ret}] \"${_src_login}\": $_filter" | log
+					printf '%s\n' "[SUCCESSFUL=${rsync_ret}] \"${_src_login}:${_src_dir} -> ${_dst_login}:${_dst_dir}\": $_filter" | log
 				else
-					printf '%s\n' "[SUCCESFUL] \"${_src_login}\": $_filter" | log
+					printf '%s\n' "[SUCCESFUL] \"${_src_login}:${_src_dir} -> ${_dst_login}:${_dst_dir}\": $_filter" | log
 				fi
 				rm -f "${TMPDIR}/rsync_output"
 				continue 2
