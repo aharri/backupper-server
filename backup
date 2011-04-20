@@ -45,6 +45,7 @@ if [ ! -e "$BASE/config/backup.conf" ]; then
 fi
 
 # Load functions & configuration.
+. "$BASE/share/openbsd-install.sub"
 . "$BASE/share/opsys.sh"
 . "$BASE/share/helpers.sh"
 . "$BASE/share/functions.sh"
