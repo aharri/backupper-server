@@ -48,9 +48,9 @@ clean_fs()
 		dirs=
 		local job
 		for backup_job in $backup_jobs; do
-			# Get _target, _user, _host and _login
+			# Get _src, _src_user, _src_host and _src_login
 			parse_target "$backup_job"
-			for dir in "${backups}/${_login}"/*; do
+			for dir in "${backups}/${_src_login}"/*; do
 				num=$(ls -1d "${dir}"/* 2>/dev/null | wc -l)
 				if [ "$num" -gt "$min_backups" ]; then
 					dirs="$dirs $dir"

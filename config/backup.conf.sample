@@ -1,13 +1,11 @@
 #!/bin/sh
 #
 
-# backups:      where to store backups (directory)
 # min_backups:  minimum backups to keep
 # max_backups:  maximum backups to keep
 #
 # {$min_backups .. $max_backups} amount of snapshots
 # will be kept for EACH filter.
-backups=/backups
 min_backups=3
 max_backups=250
 
@@ -35,13 +33,24 @@ minimum_inodes=10000
 
 # FILTERS
 
-# login:priority:expiration:filter_name:command
+# src:srcpath:dstpath:priority:expiration:filter:command
 # 
-# login:        [username@] + IP or resolvable hostname
+# src:          [username@] + hostname
+# srcpath:      path
+# dstpath:      [username@] + hostname
+# dstpath:      path
 # priority:     priority when same host has multiple jobs 
 #               (0 or higher number. Lowest "wins")
 # expiration:   how many hours will the snapshot be valid
-# filter_name:  filter file name under config/filters/
+# filter:       filter file name under config/filters/
 # command_name: command to run on the remote
 #
-backup_jobs="root@foobar.tld:0:24:full:rsync"
+# %origin%      Where backups originated
+# %filter%      Filter name
+#
+# Example to back up in pull mode client "root@foobar.tld"
+#backup_jobs="
+#root@foobar.tld:/:localhost:/backups/%origin%/%filter%:0:24:full:rsync"
+# Example to back up in push mode to "root@foobar.tld"
+#backup_jobs="
+#localhost:/:root@foobar.tld:/backups/%origin%/%filter%:0:24:full:rsync"

@@ -14,6 +14,11 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
+set -u
+
+echo "Broken, doesn't know how to handle job-specific backup dir."
+exit 1
+
 BASE=$(cd -- "$(dirname -- "$0")"; pwd)"/.."
 
 # Default umask.
@@ -34,8 +39,8 @@ cd "${backups}" || exit 1
 
 # (backups) / hosts / filters / snapshots
 for backup_job in $backup_jobs; do
-	# Get _target, _user, _host and _login
+	# Get _src, _src_user, _src_host and _src_login
 	parse_target "$backup_job"
-	cd "${backups}/${_login}/" || continue
+	cd "${backups}/${_src_login}/" || continue
 	create_db ./ locate.db
 done
