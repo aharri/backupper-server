@@ -23,6 +23,9 @@
 #
 ####################################
 
+# Internal, not used anywhere currently.
+VERSION=1.0
+
 # defaults, the same as in backup.conf.sample
 min_backups=3
 max_backups=250

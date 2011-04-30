@@ -1,6 +1,7 @@
 Server side tools to back up hosts using rsync.
 
-- Supports pull from clients
+- Supports pull from client, push to server and local->local
+  transfers
 - Automatic filesystem cleaner included to prevent
   over filling the disk.
 - Polling is possible with high run interval (e.g. 30 mins)

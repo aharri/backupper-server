@@ -1,5 +1,5 @@
-1) Get a big disc and make one partition to use
-whole disc. Mount it somewhere, for example "/backups".
+1) Configure directory that will hold back up snapshots.
+Default is /backups.
 
 2) Configure "config/backup.conf" and "config/dump.conf".
 Check the .sample and their comments for more specific
@@ -13,7 +13,7 @@ it will run fine as is.
 to generate it.
 
 That should be it regarding the server part. Now configure
-machines you want to pull with your newly created pubkey.
-Use root account if you want to back up the whole machine.
+machines or dirctories you want to back up. Root privileges
+are needed for a system wide snapshot.
 
 4) Install rsync on every machine.
