@@ -176,16 +176,16 @@ parse_target()
 	_pri= _exp= _filter= _cmd=
 
 	IFS=: assign_vars "$1" _src _src_dir _dst _dst_dir _pri _exp _filter _cmd
-
 	IFS=@ assign_vars "$_src" _src_user _src_host
+	IFS=@ assign_vars "$_dst" _dst_user _dst_host
+	unset IFS
+
 	if [ -z "$_src_host" ]; then
 		_src_host=$_src
 		_src_user=$(whoami)
 	fi
 	_src_login="${_src_user}@${_src_host}"
 
-	IFS=@ assign_vars "$_dst" _dst_user _dst_host
-	unset IFS
 	if [ -z "$_dst_host" ]; then
 		_dst_host=$_dst
 		_dst_user=$(whoami)
