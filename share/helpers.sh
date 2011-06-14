@@ -181,16 +181,20 @@ parse_target()
 	fi
 	_dst_login="${_dst_user}@${_dst_host}"
 
+	# Both are remote
 	if [ "$_src_host" != "localhost" ] && [ "$_dst_host" != "localhost" ]; then
 		#backup_mode=relay
 		echo "Error in configuration: rsync doesn't support relay." | log
 		exit 1
+	# Neither is remote
+	elif [ "$_src_host" = "localhost" ] && [ "$_dst_host" = "localhost" ]; then
+		backup_mode=filecopy
+	# Source is local: push to remote
 	elif [ "$_src_host" = "localhost" ]; then
 		backup_mode=push
-	elif [ "$_dst_host" = "localhost" ]; then
-		backup_mode=pull
+	# Destination is local: pull from source
 	else
-		backup_mode=filecopy
+		backup_mode=pull
 	fi
 	_dst_dir=$(printf "%s\n" "$_dst_dir" | sed -e "s/%origin%/${_src_login}/g")
 	_dst_dir=$(printf "%s\n" "$_dst_dir" | sed -e "s/%filter%/${_filter}/g")
