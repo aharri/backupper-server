@@ -23,6 +23,11 @@
 #
 ####################################
 
+# paths where to look for installed utilities
+PATH=/root/bin:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
+BASE=$(cd -- "$(dirname -- "$0")"; pwd)
+PROG=$(basename $0)
+
 # Internal, not used anywhere currently.
 VERSION=1.0-current
 
@@ -40,16 +45,8 @@ backup_jobs=
 task_count=0
 task_successes=0
 
-# default settings
-# XXX: -e
-set -u
-
 # default umask
 umask 077
-
-# paths where to look for installed utilities
-PATH=/root/bin:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
-BASE=$(cd -- "$(dirname -- "$0")"; pwd)
 
 # where is the ssh pubkey for root user to access remote clients
 ssh_key="$BASE/config/ssh_key"
@@ -65,6 +62,19 @@ fi
 . "$BASE/share/helpers.sh"
 . "$BASE/share/functions.sh"
 . "$BASE/config/backup.conf"
+
+# Get a lock.
+if [ -z "$backup_lock" ]; then
+	# XXX: Printing about locking would be better *if*
+	# we need to wait for the lock.
+	echo "Trying to get a lock." | log
+	exec env backup_lock=1 flock "$0" -c "${BASE}/${PROG}" "$@"
+fi
+echo "Locking done." | debuglog
+
+# Set -u here, otherwise locking will not work.
+# XXX: -e
+set -u
 
 # Call function to to check tool requirements.
 check_required_tools rm ls date df kill ping mail tr ssh find \

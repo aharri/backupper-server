@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (c) 2007 Antti Harri <iku@openbsd.fi>
+# Copyright (c) 2007,2011 Antti Harri <iku@openbsd.fi>
 #
 # Permission to use, copy, modify, and distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -15,18 +15,17 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 BASE=$(cd -- "$(dirname -- "$0")"; pwd)/..
-lockdir="${BASE}/.logger.lock"
+PROG=$(basename "$0")
 logfile="${BASE}/logs/system.log"
+
+# Handle locking.
+if [ -z "$logger_lock" ]; then
+	exec env logger_lock=1 flock "$0" -c "${BASE}/share/${PROG}" "$@"
+fi
 
 if [ -n "$1" ]; then
 	logfile=$1
 fi
-
-# Prevent race condition. Code from Lasse Collin.
-while ! mkdir "$lockdir" 2> /dev/null ; do 
-	sleep 1
-done
-trap "rmdir \"$lockdir\"" 0 1 2 13 15
 
 # Log parameters
 cat >> "$logfile"

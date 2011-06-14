@@ -55,15 +55,6 @@ check_configured_jobs()
 	fi
 }
 
-# Backup process checking.
-check_backup_process()
-{
-	if [ -d "${BASE}/.backup.lock" ]; then
-		printf '%s\n' "[QUITING] Process is already running" | log
-		exit 1
-	fi
-}
-
 # Show usage options.
 show_usage()
 {
@@ -116,7 +107,6 @@ quit_handler()
 			(: > "${BASE}/logs/system.log")
 	fi
 	rm -rf "$TMPDIR"
-	rmdir "${BASE}/.backup.lock"
 }
 
 # Install signal traps and run initialization stuff.
@@ -127,7 +117,6 @@ run_init()
 	trap 'quit_handler' 0 1 13 15
 	mkdir "$TMPDIR/tempfiles"
 	mkdir "$TMPDIR/sockets"
-	mkdir "${BASE}/.backup.lock"
 	:> "${BASE}/logs/auth.log"
 	printf '%s\n' "Installed signal traps and set up tmp environment" | log
 	ssh_verbose=
