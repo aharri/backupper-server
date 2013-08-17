@@ -23,6 +23,7 @@ fi
 clean_fs()
 {
 	local _INTERVAL; _INTERVAL=10
+	local _LONG_INTERVAL; _LONG_INTERVAL=1000
 	local dir; dir=
 	local dirs; dirs=
 	local size; size=$(printf '%s\n' "$minimum_space * 1048576" | bc)
@@ -50,8 +51,10 @@ clean_fs()
 		done
 
 		if [ -z "$dirs" ]; then
-			printf '%s\n' "[ERROR] configuration error. FS cleaner cannot continue" | log
-			exit 1
+			# Don't error out at this point. There might not be enough of backups
+			# synced yet to have $dirs variable.
+			sleep $_LONG_INTERVAL
+			continue
 		fi
 
 		while :; do
