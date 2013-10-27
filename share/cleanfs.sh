@@ -2,7 +2,7 @@
 #
 # $Id: cleanfs,v 1.3 2009/02/25 09:55:00 iku Exp $
 #
-# Copyright (c) 2007 Antti Harri <iku@openbsd.fi>
+# Copyright (c) 2007,2013 Antti Harri <iku@openbsd.fi>
 #
 
 # Paths where to look for installed utilities.
@@ -14,11 +14,29 @@ if [ ! -e "$BASE/config/backup.conf" ]; then
     exit 1
 fi
 
+set -eu
+
 # Pick up functions & defaults.
-. "$BASE/share/functions.sh"
 . "$BASE/share/opsys.sh"
+. "$BASE/share/functions.sh"
 . "$BASE/config/backup.conf"
 . "$BASE/share/helpers.sh"
+
+rm_last_directory()
+{
+	dir_to_remove=$(find "$@" -maxdepth 1 -type d -name "????-??-??-??" | \
+		sort -t '/' -k $elements | \
+		head -n 1)
+	printf '[DEBUG_FS] dir_to_remove=%s\n' "$dir_to_remove " | debuglog
+	_megs=$((space_left / 1024))
+	# Print status only before and after operation to prevent log flooding
+	if [ -n "$dir_to_remove" ]; then
+		printf '%s\n' "[STATUS1] left: ${_megs} MiB / ${inodes_left} inodes" | log
+		printf '%s\n' "removing old backup: $dir_to_remove" | log
+		rm -rf "$dir_to_remove"
+		printf '%s\n' "[STATUS2] left: ${_megs} MiB / ${inodes_left} inodes" | log
+	fi
+}
 
 clean_fs()
 {
@@ -28,11 +46,21 @@ clean_fs()
 	local dirs; dirs=
 	local size; size=$(printf '%s\n' "$minimum_space * 1048576" | bc)
 	local num; num=
+	local num_to_remove; num_to_remove=
 	local dir_to_remove; dir_to_remove=
-	local elements; elements=
 	local _megs; _megs=
 
 	printf '%s\n' "Keeping $minimum_space GB and $minimum_inodes inodes available" | debuglog
+
+	# Count the number of path names in $backups and add our hierarchy which
+	# is login@hostname/filter/date == 3
+	# Make this available globally.
+	elements=$(printf '%s\n' "$backups" | \
+		sed 's,$,/,;s,/\+,/,g' | \
+		tr -dc '/' | \
+		wc -c)
+	elements=$((elements + 3))
+	printf '[DEBUG_FS] elements=%s\n' "$elements " | debuglog
 
 	while : ; do 
 
@@ -44,6 +72,19 @@ clean_fs()
 			parse_target "$backup_job"
 			for dir in "${backups}/${_login}"/*; do
 				num=$(ls -1d "${dir}"/* 2>/dev/null | wc -l)
+				if [ "$num" -gt "$max_backups" ]; then
+					get_space_left
+					get_inodes_left
+					num_to_remove=$(($num - $max_backups))
+					for i in $(seq 1 "$num_to_remove"); do
+						rm_last_directory "$dir"
+						sleep 5
+					done
+					# Now force the next if-statement, because this dir
+					# may qualify for more cleaning
+					dirs="$dirs $dir"
+					continue
+				fi
 				if [ "$num" -gt "$min_backups" ]; then
 					dirs="$dirs $dir"
 				fi
@@ -64,27 +105,12 @@ clean_fs()
 
 			if [ "$space_left" -gt "$size" ] && \
 			   [ "$inodes_left" -gt "$minimum_inodes" ]; then break; fi
+
 			printf '[DEBUG_FS] dirs=%s\n' "$dirs" | debuglog
-			elements=$(find $dirs -maxdepth 1 -type d -name "????-??-??-??" | tail -n 1)
-#			printf '[DEBUG_FS] dir_to_remove=%s\n' "$dir_to_remove " | debuglog
-			elements=$(printf '%s\n' "$dir_to_remove" | \
-				sed 's,/\+,/,g;s,$,/,' | \
-				tr -dc '/' | \
-				wc -c)
-			printf '[DEBUG_FS] elements=%s\n' "$elements " | debuglog
-			dir_to_remove=$(find $dirs -maxdepth 1 -type d -name "????-??-??-??" | \
-				sort -t '/' -k $elements | \
-				head -n 1)
-			printf '[DEBUG_FS] dir_to_remove=%s\n' "$dir_to_remove " | debuglog
-			_megs=$((space_left / 1024))
-			# Print status only before and after operation to prevent log flooding
-			if [ -n "$dir_to_remove" ]; then
-				printf '%s\n' "[STATUS1] left: ${_megs} MiB / ${inodes_left} inodes" | log
-				printf '%s\n' "removing old backup: $dir_to_remove" | log
-				rm -rf "$dir_to_remove"
-				printf '%s\n' "[STATUS2] left: ${_megs} MiB / ${inodes_left} inodes" | log
-			fi
-			sleep 2
+
+			rm_last_directory "$dirs"
+
+			sleep 5
 		done
 		sleep $_INTERVAL
 	done

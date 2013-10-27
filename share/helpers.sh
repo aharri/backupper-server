@@ -128,3 +128,13 @@ parse_target()
 	fi
 	_login="${_user}@${_host}"
 }
+
+seq()
+{	local N; N=$1
+	local N2; N2=$2
+	while [ $N -le $N2 ]
+	do
+		echo $N
+		N=$(expr $N + 1)
+	done
+}

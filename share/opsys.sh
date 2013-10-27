@@ -12,8 +12,15 @@ configure_envs()
 			HAVE_BSD_DATE=Yes
 			HAVE_BSD_DF=Yes
 
+			HAVE_MLOCATE=No
+			HAVE_GNU_DATE=No
+			HAVE_GNU_DF=No
 		;;
 		Linux)
+			HAVE_BSD_LOCATE=No
+			HAVE_BSD_DATE=No
+			HAVE_BSD_DF=No
+
 			HAVE_MLOCATE=Yes
 			HAVE_GNU_DATE=Yes
 			HAVE_GNU_DF=Yes
@@ -23,6 +30,10 @@ configure_envs()
 			HAVE_BSD_LOCATE=Yes
 			HAVE_BSD_DATE=Yes
 			HAVE_BSD_DF=Yes
+
+			HAVE_MLOCATE=No
+			HAVE_GNU_DATE=No
+			HAVE_GNU_DF=No
 		;;
 	esac
 }

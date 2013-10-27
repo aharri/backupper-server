@@ -16,8 +16,8 @@ if [ ! -e "$BASE/config/backup.conf" ]; then
 fi
 
 # Pick up functions & defaults.
-. "$BASE/share/functions.sh"
 . "$BASE/share/opsys.sh"
+. "$BASE/share/functions.sh"
 . "$BASE/share/helpers.sh"
 . "$BASE/config/backup.conf"
 
