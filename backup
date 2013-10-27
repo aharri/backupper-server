@@ -1,9 +1,18 @@
 #!/bin/sh
 # 
-# $Id: backup,v 1.16 2009/02/25 09:55:00 iku Exp $
+# Copyright (c) 2006,2007,2008,2009,2011 Antti Harri <iku@openbsd.fi>
 #
-# Copyright (c) 2006,2007,2008,2009 Antti Harri <iku@openbsd.fi>
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
 #
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 ####################################
 # for configuration check
@@ -14,8 +23,15 @@
 #
 ####################################
 
+# paths where to look for installed utilities
+PATH=/root/bin:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
+BASE=$(cd -- "$(dirname -- "$0")"; pwd)
+PROG=$(basename $0)
+
+# Internal, not used anywhere currently.
+VERSION=1.0-current
+
 # defaults, the same as in backup.conf.sample
-backups=/backups
 min_backups=3
 max_backups=250
 mailto="root"
@@ -32,10 +48,6 @@ task_successes=0
 # default umask
 umask 077
 
-# paths where to look for installed utilities
-PATH=/root/bin:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
-BASE=$(cd -- "$(dirname -- "$0")"; pwd)
-
 # where is the ssh pubkey for root user to access remote clients
 ssh_key="$BASE/config/ssh_key"
 
@@ -45,21 +57,39 @@ if [ ! -e "$BASE/config/backup.conf" ]; then
 fi
 
 # Load functions & configuration.
+. "$BASE/share/openbsd-install.sub"
 . "$BASE/share/opsys.sh"
 . "$BASE/share/helpers.sh"
 . "$BASE/share/functions.sh"
 . "$BASE/config/backup.conf"
 
+# Get a lock.
+if [ -z "$backup_lock" ]; then
+	# XXX: Printing about locking would be better *if*
+	# we need to wait for the lock.
+	echo "Trying to get a lock." | log
+	exec env backup_lock=1 flock "$0" -c "${BASE}/${PROG}" "$@"
+fi
+echo "Locking done." | debuglog
+
+# Set -u here, otherwise locking will not work.
+# XXX: -e
+set -u
+
 # Call function to to check tool requirements.
-required_tools="rm ls date df kill ping mail tr ssh find dirname basename
-tail sort head install wc du bc cut awk uname whoami pgrep rsync"
-check_required_tools
+check_required_tools rm ls date df kill ping mail tr ssh find \
+	dirname basename tail sort head install wc du bc cut awk \
+	uname whoami pgrep rsync
+
+date=$(date +%Y-%m-%d-%H)
 
 # Check that there aren't other processes running
 check_backup_process
 
 # Call function to parse command line arguments.
-parse_arguments $@
+if [ "$#" -gt 0 ]; then
+	parse_arguments $@
+fi
 
 # Call function to install signal traps and init other stuff.
 run_init
@@ -69,73 +99,69 @@ check_configured_jobs
 
 backup_loop()
 {
-
-	local ssh_verbose; ssh_verbose=
-	if [ "$debug" = 'YES' ]; then
-		ssh_verbose='-vv'
-	fi
-
-	local socket
-	local sockets; sockets=
+	local ret
 	local tmp_filter_file
+	local backup_mode
 	for backup_job in $parsed_jobs; do
-	
-		# Get _target, _user, _host and _login
+		# Explode backup job into usable variables.
 		parse_target "$backup_job"
 
-		filter_name=$(echo "$backup_job" | cut -f 4 -d ':')
-
-		if [ "$_host" != "localhost" ]; then
-			ping -w 1 -c 1 "${_host}" 1>/dev/null 2>/dev/null
-			if [ "$?" -ne 0 ]; then
-				printf '%s\n' "[SKIPPING] \"$_host\" is currently unavailable" | log
-				continue 1
-			fi
-		fi
+		# Skip ping test if both are defined as localhost.
+		# Relay doesn't work with rsync, so only localhost<->localhost is valid
+		# because we handle it specially.
+		case "$backup_mode" in
+		relay)
+			echo "Error in configuration: rsync doesn't support relay." | log
+			continue
+			;;
+		push) pingtest "$_dst_host" ;;
+		pull) pingtest "$_src_host" ;;
+		esac
 
 		printf '%s\n' "Truncating filter file" | debuglog
 		tmp_filter_file="$TMPDIR/tempfiles/filter"
-		echo -n '' > "$tmp_filter_file"
+		: > "$tmp_filter_file"
 
 		task_count=$((task_count + 1))
-		printf '%s\n' "\"$_host\" is alive" | log
 
 		# Check for incomplete installation.
-		check_ssh_keyfile "$_host"
-		if [ "$?" -ne 0 ]; then
-			printf '%s\n' "[SKIPPING] You don't have host key set. \"ssh ${_host}\" and accept signature." | log
-			continue
-		fi
-
-		# Check for existing socket
-		socket="${TMPDIR}/sockets/$_login"
-		echo "$sockets" | fgrep -q -w -e "$_login"
-		if [ "$?" -ne 0 ] && [ "$_host" != "localhost" ]; then
-			# Open a connection to the remote host and
-			# create a control socket
-			# ssh -S /tmp/ssh_socket -M -N -f host.example.com
-			ssh \
+		local generic_filter=
+		case "$backup_mode" in
+		filecopy)
+			last_backup_dir=$(\
+				find "$_dst_dir" -maxdepth 1 | \
+				egrep -e '/[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{2}$' | \
+				sort -n | tail -n 1)
+			generic_filter="generic:${_src_login}"
+			;;
+		push)
+			check_ssh_keyfile "$_dst_user" "$_dst_host" || continue
+			setup_socket "$_dst_login"
+			last_backup_dir=$(ssh \
 				-S "$socket" \
-				-M \
-				-N \
 				-o PasswordAuthentication=no \
 				-o BatchMode=yes \
-				-i "$ssh_key" \
-				-f "$_login" 2>&1 | debuglog
-			if [ "$?" -ne 0 ]; then
-				printf '%s\n' "[SKIPPING] failed to create ssh master socket for $_login" | log
-				continue
-			fi
-			sockets="$sockets $_login"
-			printf '%s\n' "Created socket for \"$_login\"" | debuglog
-		fi
+				"$_dst_login" \
+				"find '${_dst_dir}' -type d -maxdepth 1 | \
+				egrep -e '/[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{2}$' | \
+				sort -n | tail -n 1")
+			generic_filter="generic:${_dst_login}"
+			rsync_src=${_src_dir}
+			rsync_dst="${_dst_login}:${_dst_dir}/${date}"
+			;;
+		pull)
+			check_ssh_keyfile "$_src_user" "$_src_host" || continue
+			setup_socket "$_src_login"
+			last_backup_dir=$(\
+				find "$_dst_dir" -maxdepth 1 | \
+				egrep -e '/[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{2}$' | \
+				sort -n | tail -n 1)
+			generic_filter="generic:${_src_login}"
+			rsync_src="${_src_login}:${_src_dir}"
+			rsync_dst="${_dst_dir}/${date}"
+			;;
+		esac
 
-		last_backup_dir=$(find "${backups}/${_login}/${filter_name}/" \
-			-maxdepth 1 \
-			-name "????-??-??-??" | sort -n | tail -n 1)
-
-		date=$(date +%Y-%m-%d-%H)
-		new_dir="${backups}/${_login}/${filter_name}/${date}"
 
 		# Previous backup found -> use it as base.
 		local rsync_last_backup_dir; rsync_last_backup_dir=
@@ -143,15 +169,16 @@ backup_loop()
 			rsync_last_backup_dir="--link-dest=$last_backup_dir"
 		fi
 
-		if [ ! -f "${BASE}/config/filters/${filter_name}" ]; then
+		if [ ! -f "${BASE}/config/filters/${_filter}" ]; then
 			# Non-fatal, continue.
 			printf '%s\n' "[SKIPPING] Filter not found. Please check configuration." | log
 			continue 1
 		fi
 
 		local i
-		for i in "generic" "generic:${_login}" "$filter_name"; do
+		for i in "generic" "generic:${_src_login}" "$_filter"; do
 			if [ -f "$BASE/config/filters/$i" ]; then
+				printf "%s\n" "Including filter \"$i\"" | log
 				cat "$BASE/config/filters/$i" >> "$tmp_filter_file"
 			fi
 		done
@@ -159,9 +186,9 @@ backup_loop()
 		local output
 		local rsync_ret
 		# Everything ready and initialized!
-		# The following -e specification needs to be indented with spaces
-		# because rsync is crappy!
-		if [ "$_host" = "localhost" ]; then
+		# Local copy, leave out the network switches.
+		case "$backup_mode" in
+		filecopy)
 			rsync \
 				$rsync_opts \
 				-a \
@@ -170,9 +197,13 @@ backup_loop()
 				--numeric-ids \
 				--filter=". $tmp_filter_file" \
 				$rsync_last_backup_dir \
-				"/" \
-				"${new_dir}/" > "${TMPDIR}/rsync_output" 2>&1
-		else
+				"$_src_dir" \
+				"$_dst_dir/$date" > "${TMPDIR}/rsync_output" 2>&1
+			;;
+		# Network copy.
+		push|pull)
+			# The following -e specification needs to be indented with spaces
+			# because rsync is crappy!
 			rsync \
 				$rsync_opts \
 				-a -z \
@@ -183,20 +214,20 @@ backup_loop()
 				--numeric-ids \
 				--filter=". $tmp_filter_file" \
 				$rsync_last_backup_dir \
-				"${_login}:/" \
-				"${new_dir}/" > "${TMPDIR}/rsync_output" 2>&1
-		fi
+				"$rsync_src" \
+				"$rsync_dst" > "${TMPDIR}/rsync_output" 2>&1
+			;;
+		esac
 		rsync_ret=$?
-		local ret
 
 		# Acceptable (= clean) exit codes are: 0, 23 and 24
 		for ret in 0 23 24; do 
 			if [ "$ret" -eq "$rsync_ret" ]; then
 				task_successes=$((task_successes + 1))
 				if [ "$debug" = "YES" ]; then
-					printf '%s\n' "[SUCCESSFUL=${rsync_ret}] \"${_login}\": $filter_name" | log
+					printf '%s\n' "[SUCCESSFUL=${rsync_ret}] \"${_src_login}:${_src_dir} -> ${_dst_login}:${_dst_dir}\": $_filter" | log
 				else
-					printf '%s\n' "[SUCCESFUL] \"${_login}\": $filter_name" | log
+					printf '%s\n' "[SUCCESFUL] \"${_src_login}:${_src_dir} -> ${_dst_login}:${_dst_dir}\": $_filter" | log
 				fi
 				rm -f "${TMPDIR}/rsync_output"
 				continue 2

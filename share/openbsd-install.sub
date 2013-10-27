@@ -1,0 +1,326 @@
+#	$OpenBSD: src/distrib/miniroot/install.sub,v 1.636 2011/03/22 19:20:15 krw Exp $
+#	$NetBSD: install.sub,v 1.5.2.8 1996/09/02 23:25:02 pk Exp $
+#
+# Copyright (c) 1997-2009 Todd Miller, Theo de Raadt, Ken Westerback
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+# IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+# NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+# THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+# Copyright (c) 1996 The NetBSD Foundation, Inc.
+# All rights reserved.
+#
+# This code is derived from software contributed to The NetBSD Foundation
+# by Jason R. Thorpe.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE NETBSD FOUNDATION, INC. AND CONTRIBUTORS
+# ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+# TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+# PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+
+# OpenBSD install/upgrade script common subroutines and initialization code
+
+
+# Echo the file $1 to standard output, skipping any lines that begin with a
+# '#'. i.e. strip comment lines from the file.
+openbsd_stripcom () {
+	local _l
+
+	[[ -f $1 ]] || return
+
+	while read _l; do
+		[[ -n ${_l%%#*} ]] && echo $_l
+	done <$1
+}
+
+# Prints the supplied parameters properly escaped for future sh/ksh parsing.
+# Quotes are added if needed, so you should not do that yourself.
+openbsd_quote() (
+	# Since this is a subshell we won't pollute the calling namespace
+	for a; do
+		alias Q=$a; a=$(alias Q); print -rn -- " ${a#Q=}"
+	done | sed '1s/ //'
+	echo
+)
+
+
+# Ask for a password, saving the input in $resp.
+#    Display $1 as the prompt.
+#    *Don't* allow the '!' options that ask does.
+#    *Don't* echo input.
+#    *Don't* interpret "\" as escape character.
+openbsd_askpass() {
+	set -o noglob
+	stty -echo
+	read -r resp?"$1 "
+	stty echo
+	set +o noglob
+	echo
+}
+
+
+# Issue a read into the global variable $resp. If the dmesg output is
+# changed while inside this function, the current read will be aborted
+# and the function will return a non-zero value. Normally, the caller
+# will then reprint any prompt and call the function again.
+openbsd__ask() {
+	local _int _redo=0 _pid
+
+	trap "_int=1" INT
+	trap "_redo=1" TERM
+	lock; dmesg >/tmp/update; unlock
+	read resp
+	lock; rm /tmp/update; unlock
+	if (( _redo )); then
+		stty raw
+		stty -raw
+	else
+		case $resp in
+		!)	echo "Type 'exit' to return to install."
+			sh
+			_redo=1
+			;;
+		!*)	eval "${resp#?}"
+			_redo=1
+			;;
+		esac
+	fi
+	retrap
+	(( _int )) && kill -INT $$
+	return $_redo
+}
+
+# Ask for user input.
+#
+#    $1    = the question to ask the user
+#    $2    = the default answer
+#
+# Save the user input (or the default) in $resp.
+#
+# Allow the user to escape to shells ('!') or execute commands
+# ('!foo') before entering the input.
+openbsd_ask() {
+	local _question=$1 _default=$2
+
+	while :; do
+		echo -n "$_question "
+		[[ -z $_default ]] || echo -n "[$_default] "
+		_ask && : ${resp:=$_default} && break
+	done
+}
+
+
+# Ask for user input until a non-empty reply is entered.
+#
+#    $1    = the question to ask the user
+#    $2    = the default answer
+#
+# Save the user input (or the default) in $resp.
+openbsd_ask_until() {
+	resp=
+	while [[ -z $resp ]] ; do
+		ask "$1" "$2"
+	done
+}
+
+# Ask the user for a y or n, and insist on 'y', 'yes', 'n' or 'no'.
+#
+#    $1    = the question to ask the user
+#    $2    = the default answer (assumed to be 'n' if empty).
+#
+# Return 'y' or 'n' in $resp.
+openbsd_ask_yn() {
+	local _q=$1 _a=${2:-no} _resp
+	typeset -l _resp
+
+	while :; do
+		ask "$_q" "$_a"
+		_resp=$resp
+		case $_resp in
+		y|yes)	resp=y ; return ;;
+		n|no)	resp=n ; return ;;
+		esac
+	done
+}
+
+# Ask for the user to select one value from a list, or 'done'.
+#
+# $1 = name of the list items (disk, cd, etc.)
+# $2 = question to ask
+# $3 = list of valid choices
+# $4 = default choice, if it is not specified use the first item in $3
+#
+# N.B.! $3 and $4 will be "expanded" using eval, so be sure to escape them
+#       if they contain spooky stuff
+#
+# At exit $resp holds selected item, or 'done'
+openbsd_ask_which() {
+	local _name=$1 _query=$2 _list=$3 _def=$4 _dynlist _dyndef
+
+	while :; do
+		# Put both lines in ask prompt, rather than use a
+		# separate 'echo' to ensure the entire question is
+		# re-ask'ed after a '!' or '!foo' shell escape.
+		eval "_dynlist=\"$_list\""
+		eval "_dyndef=\"$_def\""
+
+		# Clean away whitespace and determine the default
+		set -o noglob
+		set -- $_dyndef; _dyndef="$1"
+		set -- $_dynlist; _dynlist="$*"
+		set +o noglob
+		(( $# < 1 )) && resp=done && return
+
+		: ${_dyndef:=$1}
+		echo "Available ${_name}s are: $_dynlist."
+		echo -n "Which one $_query? (or 'done') "
+		[[ -n $_dyndef ]] && echo -n "[$_dyndef] "
+		_ask || continue
+		[[ -z $resp ]] && resp="$_dyndef"
+
+		# Quote $resp to prevent user from confusing isin() by
+		# entering something like 'a a'.
+		isin "$resp" $_dynlist done && break
+		echo "'$resp' is not a valid choice."
+	done
+}
+
+# test the first argument against the remaining ones, return success on a match
+openbsd_isin() {
+	local	_a=$1 _b
+
+	shift
+	for _b; do
+		[[ $_a == $_b ]] && return 0
+	done
+	return 1
+}
+
+# add first argument to list formed by the remaining arguments
+# adds to the tail if the element does not already exist
+openbsd_addel() {
+	local	_a=$1
+
+	shift
+
+	echo -n "$*"
+	openbsd_isin "$_a" $* || echo -n " $_a"
+}
+
+# remove all occurrences of first argument from list formed by
+# the remaining arguments
+openbsd_rmel() {
+	local	_a=$1 _b
+
+	shift
+	for _b; do
+		[[ $_a != $_b ]] && echo -n "$_b "
+	done
+}
+
+openbsd_bsort() {
+	local _l _a=$1 _b
+
+	[[ $# -gt 0 ]] || return
+
+	shift
+	for _b; do
+		if [[ $_a != $_b ]] ; then
+			if [[ $_a > $_b ]] ; then
+				_l="$_a $_l"; _a=$_b
+			else
+				_l="$_b $_l"
+			fi
+		fi
+	done
+
+	# Output the smallest value found.
+	echo -n "$_a "
+
+	# Sort remaining values.
+	bsort $_l
+}
+
+
+# Encode $1 as specified for usercodes and passwords in RFC 1738
+# section 3.1 and section 5.
+#
+# Escape everything between 0x20 and 0x7e to avoid both illegal url
+# characters and characters causing problems during script processing.
+#
+# *NOTE*
+#	1) quotes around $1 are required to preserve trailing or
+#	   embedded blanks in usercodes and passwords.
+#	2) substitute '%' FIRST so it doesn't eliminate '%' chars we insert.
+openbsd_encode_for_url() {
+	echo "$1" | sed -e "
+s/%/%25/g
+s/ /%20/g
+s/!/%21/g
+s/\"/%22/g
+s/#/%23/g
+s/\\\$/%24/g
+s/&/%26/g
+s/'/%27/g
+s/(/%28/g
+s/)/%29/g
+s/\*/%2a/g
+s/+/%2b/g
+s/,/%2c/g
+s/-/%2d/g
+s/\./%2e/g
+s/\//%2f/g
+s/:/%3a/g
+s/;/%3b/g
+s/</%3c/g
+s/=/%3d/g
+s/>/%3e/g
+s/?/%3f/g
+s/@/%40/g
+s/\[/%5b/g
+s/\\\\/%5c/g
+s/]/%5d/g
+s/\^/%5e/g
+s/_/%5f/g
+s/\`/%60/g
+s/{/%7b/g
+s/|/%7c/g
+s/}/%7d/g
+s/~/%7e/g
+"
+}
+

@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (c) 2007 Antti Harri <iku@openbsd.fi>
+# Copyright (c) 2011 Antti Harri <iku@openbsd.fi>
 #
 # Permission to use, copy, modify, and distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -14,19 +14,29 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-BASE=$(cd -- "$(dirname -- "$0")"; pwd)"/.."
+# Example script to trigger backups when the correct
+# USB disc has been plugged in. The disk in question
+# is encrypted for extra protection, which will
+# be opened with bioctl, resulting disk mounted
+# and finally the backup script will be started
+# that is inside the disk.
 
-# Default umask.
-umask 077
+set -u
 
-if [ -f "$BASE/config/ssh_key" ]; then
-	echo "$BASE/config/ssh_key already exists!"
-	exit 1
-fi
+# Fill in with your disk uids
+cryptodev=a2d2046a303e5e58.d
+backupdev=969a60a2dc7cdb7f.d
+mntpoint=/backups
 
-ssh-keygen -N '' -t rsa -f "$BASE/config/ssh_key"
-
-if [ "$?" -eq 0 ]; then
-	echo "You should now place the public key into clients' authorized_keys"
-	echo "See the contents of .pub and paste it for example"
-fi
+echo 'Assembling encrypted volumes'
+until bioctl -c C -l "$cryptodev" softraid0
+do echo -n 'try again ' ; sleep 1
+done
+fsck -p "$backupdev"
+mount "$mntpoint"
+cd "$mntpoint"/backupper-server/
+./backup
+cd /
+umount "$mntpoint"
+duid=$(echo "$backupdev" | cut -f 1 -d '.')
+bioctl -d "$duid"

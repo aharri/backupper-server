@@ -1,9 +1,18 @@
 #!/bin/sh
 #
-# $Id: cleanfs,v 1.3 2009/02/25 09:55:00 iku Exp $
-#
 # Copyright (c) 2007,2013 Antti Harri <iku@openbsd.fi>
 #
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 # Paths where to look for installed utilities.
 PATH=/root/bin:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
@@ -68,9 +77,9 @@ clean_fs()
 		dirs=
 		local job
 		for backup_job in $backup_jobs; do
-			# Get _target, _user, _host and _login
+			# Get _src, _src_user, _src_host and _src_login
 			parse_target "$backup_job"
-			for dir in "${backups}/${_login}"/*; do
+			for dir in "${backups}/${_src_login}"/*; do
 				num=$(ls -1d "${dir}"/* 2>/dev/null | wc -l)
 				if [ "$num" -gt "$max_backups" ]; then
 					get_space_left
