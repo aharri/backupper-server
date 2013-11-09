@@ -127,7 +127,8 @@ parse_jobs()
 		local last_backup_time; last_backup_time=$(my_date_parse $(basename "$last_backup_dir"))
 		local _now; _now=$(date "+%s")
 
-		expiration=$((expiration * 3600))
+		local expiration
+		expiration=$((_exp * 3600))
 
 		# finally compare!
 		if [ "$((last_backup_time + expiration))" -gt "$_now" ] || [ $(basename "$last_backup_dir") = "$date" ]; then
@@ -145,8 +146,8 @@ parse_jobs()
 	# Traverse logins.
 	for login in $logins; do
 		# Select only jobs with highest priority (= lowest number).
-		local backup_job=$(printf '%s\n' "$parsed_jobs2" | grep "^[[:space:]]*${login}:" | sort -n -k 5 -t ':' | head -n 1)
-		local filter_name=$(printf '%s\n' "$backup_job" | cut -f 7 -d ':')
+		local backup_job; backup_job=$(printf '%s\n' "$parsed_jobs2" | grep "^[[:space:]]*${login}:" | sort -n -k 5 -t ':' | head -n 1)
+		local filter_name; filter_name=$(printf '%s\n' "$backup_job" | cut -f 7 -d ':')
 		parsed_jobs=$(openbsd_addel "$parsed_jobs" "$backup_job")
 		printf '%s\n' "[ADDED] \"${login}\": ${filter_name}" | log
 	done

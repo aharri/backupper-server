@@ -234,7 +234,6 @@ backup_loop()
 		printf '[FAILED=%s] output follows:\n' "$rsync_ret" | log
 		cat "${TMPDIR}/rsync_output" | log
 		rm -f "${TMPDIR}/rsync_output"
-		rm -rf "$new_dir"
 	done
 }
 
