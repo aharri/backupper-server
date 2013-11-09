@@ -137,8 +137,9 @@ assign_vars()
 		shift
 	done
 }
+# src:srcpath:dst:dstpath:priority:expiration:min:filter:command
 
-# Parse target: src:src_dir:dst:dst_dir:pri:exp:filter:command
+# Parse target: src:src_dir:dst:dst_dir:pri:exp:min:filter:command
 # Returns
 #  _src
 #  _src_dir
@@ -152,6 +153,7 @@ assign_vars()
 #  _dst_login
 #  _pri
 #  _exp
+#  _minjobs
 #  _filter
 #  _cmd
 #
@@ -162,9 +164,9 @@ parse_target()
 	local NONE
 	_src= _src_dir= _src_user= _src_host= _src_login=
 	_dst= _dst_dir= _dst_user= _dst_host= _dst_login=
-	_pri= _exp= _filter= _cmd=
+	_pri= _minjobs= _exp= _filter= _cmd=
 
-	IFS=: assign_vars "$1" _src _src_dir _dst _dst_dir _pri _exp _filter _cmd
+	IFS=: assign_vars "$1" _src _src_dir _dst _dst_dir _pri _exp _minjobs _filter _cmd
 	IFS=@ assign_vars "$_src" _src_user _src_host
 	IFS=@ assign_vars "$_dst" _dst_user _dst_host
 	unset IFS
@@ -196,8 +198,8 @@ parse_target()
 	else
 		backup_mode=pull
 	fi
-	_dst_dir=$(printf "%s\n" "$_dst_dir" | sed -e "s/%origin%/${_src_login}/g")
-	_dst_dir=$(printf "%s\n" "$_dst_dir" | sed -e "s/%filter%/${_filter}/g")
+	_dst_dir=$(printf "%s\n" "$_dst_dir" | \
+		sed -e "s/%origin%/${_src_login}/g;s/%filter%/${_filter}/g")
 }
 
 seq()

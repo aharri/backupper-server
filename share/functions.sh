@@ -36,13 +36,10 @@ debuglog()
 	if [ "$debug" = "YES" ]; then log; else exec > /dev/null; fi
 }
 
-get_space_left()
+get_disc_stats()
 {
-	space_left=`df -k "${backups}" | tail -1 | awk '{ print $4 }'`
-}
-get_inodes_left()
-{
-	inodes_left=$(my_df_i "${backups}")
+	space_left=$(df -k "$1" | tail -1 | awk '{ print $4 }')
+	inodes_left=$(my_df_i "$1")
 }
 
 #

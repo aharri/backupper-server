@@ -1,13 +1,48 @@
 #!/bin/sh
 #
 
-# min_backups:  minimum backups to keep
-# max_backups:  maximum backups to keep
+##
+## Setup cleaning intervals
+##
+
+# Format is name:start:stop:rate
+
+# Name is not used anywhere, feel free to use strings like "weekly".
+
+# Start and stop define the interval that will be cleaned
+
+# Rate: keep snapshot of every $first_int_rate hours
+# Example:
+# -> rate=6 -> keep 4 snapshots/day.
+# -> rate=-1 -> keep all, no cleaning.
+# -> rate=0 -> delete all
+
+# The default value is:
+# 1st 0 -> 72h: keep all
+# 2nd 72h -> 14d: 4/d
+# 3rd 14d -> 30d: 1/d
+# 4th 30d -> 90d: 1/w
+# 5th 90d -> 6 months: 1/month
+# 6th 6 months -> infinite: delete all
+# XXX: currently infite value will have to be faked with a large
+#      enough number.
+
+# name:start[d]:top[d]:rate[h]
+cleaning_intervals="
+1st:0:3:-1
+2nd:3:14:6
+3rd:14:30:24
+4th:30:90:168
+5th:90:180:720
+6th:180:2000:0
+"
+
+# Minimum gigabytes and inodes to keep available.
 #
-# {$min_backups .. $max_backups} amount of snapshots
-# will be kept for EACH filter.
-min_backups=3
-max_backups=250
+# Used by externally launchable clean FS script.
+# -1 to disable.
+minimum_space=3
+minimum_inodes=10000
 
 # Who should receive logs?
 #
@@ -24,16 +59,9 @@ debug=
 # only appends more options.
 rsync_opts=
 
-# Minimum gigabytes and inodes to keep available.
-#
-# Used by externally launchable clean FS script.
-# -1 to disable.
-minimum_space=3
-minimum_inodes=10000
-
 # FILTERS
 
-# src:srcpath:dst:dstpath:priority:expiration:filter:command
+# src:srcpath:dst:dstpath:priority:expiration:min:filter:command
 # 
 # src:          [username@] + hostname
 # srcpath:      path
@@ -41,6 +69,10 @@ minimum_inodes=10000
 # dstpath:      path
 # priority:     priority when same host has multiple jobs 
 #               (0 or higher number. Lowest "wins")
+# min:		minimum number of backups to keep,
+#		enter one comma separated number for each row
+#		you have set up in cleaning_intervals
+#		(0 or higher number)
 # expiration:   how many hours will the snapshot be valid
 # filter:       filter file name under config/filters/
 # command_name: command to run on the remote
@@ -50,7 +82,7 @@ minimum_inodes=10000
 #
 # Example to back up in pull mode client "root@foobar.tld"
 #backup_jobs="
-#root@foobar.tld:/:localhost:/backups/%origin%/%filter%:0:24:full:rsync"
+#root@foobar.tld:/:localhost:/backups/%origin%/%filter%:0:24:-1,11,4,5,1,0:full:rsync"
 # Example to back up in push mode to "root@foobar.tld"
 #backup_jobs="
-#localhost:/:root@foobar.tld:/backups/%origin%/%filter%:0:24:full:rsync"
+#localhost:/:root@foobar.tld:/backups/%origin%/%filter%:0:24:-1,11,4,5,1,0:full:rsync"

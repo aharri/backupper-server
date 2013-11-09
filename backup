@@ -83,7 +83,6 @@ check_required_tools rm ls date df kill ping mail tr ssh find \
 
 date=$(date +%Y-%m-%d-%H)
 
-
 # Call function to parse command line arguments.
 if [ "$#" -gt 0 ]; then
 	parse_arguments $@
@@ -94,6 +93,9 @@ run_init
 
 # Call function to check and parse backup jobs.
 check_configured_jobs
+
+# Clean old entries before making new.
+"$BASE/share/cleanfs.sh"
 
 backup_loop()
 {

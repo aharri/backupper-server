@@ -26,103 +26,143 @@ fi
 set -eu
 
 # Pick up functions & defaults.
+. "$BASE/share/openbsd-install.sub"
 . "$BASE/share/opsys.sh"
 . "$BASE/share/functions.sh"
 . "$BASE/config/backup.conf"
 . "$BASE/share/helpers.sh"
 
-rm_last_directory()
-{
-	dir_to_remove=$(find "$@" -maxdepth 1 -type d -name "????-??-??-??" | \
-		sort -t '/' -k $elements | \
-		head -n 1)
-	printf '[DEBUG_FS] dir_to_remove=%s\n' "$dir_to_remove " | debuglog
-	_megs=$((space_left / 1024))
-	# Print status only before and after operation to prevent log flooding
-	if [ -n "$dir_to_remove" ]; then
-		printf '%s\n' "[STATUS1] left: ${_megs} MiB / ${inodes_left} inodes" | log
-		printf '%s\n' "removing old backup: $dir_to_remove" | log
-		rm -rf "$dir_to_remove"
-		printf '%s\n' "[STATUS2] left: ${_megs} MiB / ${inodes_left} inodes" | log
-	fi
-}
-
 clean_fs()
 {
-	local _INTERVAL; _INTERVAL=10
-	local _LONG_INTERVAL; _LONG_INTERVAL=1000
-	local dir; dir=
-	local dirs; dirs=
-	local size; size=$(printf '%s\n' "$minimum_space * 1048576" | bc)
-	local num; num=
-	local num_to_remove; num_to_remove=
-	local dir_to_remove; dir_to_remove=
-	local _megs; _megs=
+	local space_to_keep; space_to_keep=$(printf '%s\n' "$minimum_space * 1048576" | bc)
 
-	printf '%s\n' "Keeping $minimum_space GB and $minimum_inodes inodes available" | debuglog
+	printf '%s\n' "[DEBUG_FS] Keeping $minimum_space GB and $minimum_inodes inodes available" | debuglog
 
-	# Count the number of path names in $backups and add our hierarchy which
-	# is login@hostname/filter/date == 3
-	# Make this available globally.
-	elements=$(printf '%s\n' "$backups" | \
-		sed 's,$,/,;s,/\+,/,g' | \
-		tr -dc '/' | \
-		wc -c)
-	elements=$((elements + 3))
-	printf '[DEBUG_FS] elements=%s\n' "$elements " | debuglog
+	local backup_job
+	for backup_job in $backup_jobs; do
+		# Get type, destination dir, etc.
+		parse_target "$backup_job"
 
-	while : ; do 
+		# Skip remote targets
+		test "$backup_mode" = push && continue
 
-		# build directory variable
-		dirs=
-		local job
-		for backup_job in $backup_jobs; do
-			# Get _src, _src_user, _src_host and _src_login
-			parse_target "$backup_job"
-			for dir in "${backups}/${_src_login}"/*; do
-				num=$(ls -1d "${dir}"/* 2>/dev/null | wc -l)
-				if [ "$num" -gt "$max_backups" ]; then
-					get_space_left
-					get_inodes_left
-					num_to_remove=$(($num - $max_backups))
-					for i in $(seq 1 "$num_to_remove"); do
-						rm_last_directory "$dir"
-						sleep 5
-					done
-					# Now force the next if-statement, because this dir
-					# may qualify for more cleaning
-					dirs="$dirs $dir"
-					continue
-				fi
-				if [ "$num" -gt "$min_backups" ]; then
-					dirs="$dirs $dir"
-				fi
-			done
-		done
-
-		if [ -z "$dirs" ]; then
-			# Don't error out at this point. There might not be enough of backups
-			# synced yet to have $dirs variable.
-			sleep $_LONG_INTERVAL
+		if [ ! -d "$_dst_dir" ]; then
 			continue
 		fi
 
-		while :; do
-			# don't clean the disc if there is enough space & inodes left
-			get_space_left
-			get_inodes_left
+		local cur_date
+		cur_date=$(date +%s)
 
-			if [ "$space_left" -gt "$size" ] && \
-			   [ "$inodes_left" -gt "$minimum_inodes" ]; then break; fi
+		# 1st:0:3:-1
+		# ci_minrate [h/job] ci_maxrate [h/job]
+		local ci_name ci_start ci_stop ci_minrate ci_maxrate ci_minjobs ci_maxjobs
+		local count cleaning_interval
+		count=0; for cleaning_interval in $cleaning_intervals; do
+			count=$((count + 1))
 
-			printf '[DEBUG_FS] dirs=%s\n' "$dirs" | debuglog
+			IFS=: assign_vars "$cleaning_interval" ci_name ci_start ci_stop ci_maxrate
+			unset IFS
 
-			rm_last_directory "$dirs"
+			# Keep all
+			test "$ci_maxrate" = "-1" && continue
 
-			sleep 5
+			# Lets first calculate the maximum number of jobs allowed.
+			# (stop[d] - start[d]) * 24h / rate[h/job] = max jobs
+			if [ "$ci_maxrate" = "0" ]; then
+				ci_maxjobs=0 # prevent division by zero
+				ci_minjobs=0
+			else
+				ci_maxjobs=$(printf '(%s - %s) * 24 / %s\n' "$ci_stop" "$ci_start" "$ci_maxrate" | bc)
+				if [ "$ci_maxjobs" -lt "0" ]; then
+					printf '[WARNING] Could not calculate max jobs for "%s", exiting\n' "$ci_name" | log
+					break 2
+				fi
+				ci_minjobs=$(printf '%s\n' "$_minjobs" | cut -f "$count" -d ',')
+			fi
+# 			ci_maxjobs=2
+# 			ci_minjobs=0
+			printf '[DEBUG_FS] Maximum jobs for %s is %s (ci:%s)\n' "$_dst_dir" "$ci_maxjobs" "$ci_name" | debuglog
+
+			ci_start=$(printf '%s - (3600 * 24 * %s)\n' "$cur_date" "$ci_start" | bc)
+			ci_stop=$(printf '%s - (3600 * 24 * %s)\n' "$cur_date" "$ci_stop" | bc)
+
+			local dir dirs interval_dirs count2
+			dirs=$(find "$_dst_dir" -maxdepth 1 -type d -name "????-??-??-??" | \
+				sed -E 's,(.*/)(.*),\2/\1\2,' | \
+				sort -t '/' -k 1 | \
+				cut -c 15-)
+			interval_dirs=''; count2=0; for dir in $dirs; do
+				# 2013-08-17-07 -> %Y-%m-%dT%H:%M:%S so GNU date can grok it.
+				# XXX: Use my_date_parse()
+				local snap_date
+				snap_date=$(date --date="$(basename "$dir" | sed -E 's,(.*)-(..)$,\1T\2:00:00,')" +%s)
+				# Out-of-range check
+				if [ "$snap_date" -lt "$ci_stop" ] || \
+				   [ "$snap_date" -gt "$ci_start" ]; then
+					continue
+				fi
+				count2=$((count2 + 1))
+				interval_dirs=$(openbsd_addel "$interval_dirs" "$dir")
+			done
+
+			# XXX: -lt -1 ?
+			if [ -z "$ci_minjobs" ] || [ "$ci_minjobs" -lt "-1" ]; then
+				printf '[WARNING] Could not get minimum jobs for "%s", exiting.\n' "$_dst_dir" | log
+				break 2
+			fi
+			printf '[DEBUG_FS] Minimum jobs for %s is %s (ci:%s)\n' "$_dst_dir" "$ci_minjobs" "$ci_name" | debuglog
+			if [ "$count2" -le "$ci_minjobs" ]; then
+				printf '[DEBUG_FS] Backups low in %s, lagging? -> skipping job\n' \
+					"$_dst_dir" | debuglog
+				continue 2
+			fi
+
+			if [ "$count2" -gt "$ci_maxjobs" ]; then
+				printf '[DEBUG_FS] more than %s backups in %s -> cleaning\n' \
+					"$ci_maxjobs" "$_dst_dir" | debuglog
+				# Loop through available snapshots,
+				# if there are more than rate allows, delete them.
+				local suspended_snap_date # Suspended from deletion
+				suspended_snap_date=''; for dir in $interval_dirs; do
+					# 2013-08-17-07 -> %Y-%m-%dT%H:%M:%S so GNU date can grok it.
+					# XXX: Use my_date_parse()
+					snap_date=$(date --date="$(basename "$dir" | sed -E 's,(.*)-(..)$,\1T\2:00:00,')" +%s)
+					# Initialize the variable
+					if [ -z "$suspended_snap_date" ]; then
+						suspended_snap_date=$snap_date
+						printf '[DEBUG_FS] Suspended:      "%s"\n' "$(date --date="@$snap_date" +%Y-%m-%d-%H)" | debuglog
+						test "$ci_maxrate" != "0" && continue
+					fi
+					local temp1
+					temp1=$(printf '%s - (%s * 3600)\n' "$suspended_snap_date" "$ci_maxrate" | bc)
+					printf '[DEBUG_FS] Time threshold: "%s"\n' "$(date --date="@$temp1" +%Y-%m-%d-%H)" | debuglog
+					printf '[DEBUG_FS] Snapshot date:  "%s"\n' "$(basename "$dir")" | debuglog
+					if [ "$snap_date" -gt "$temp1" ] || [ "$ci_maxrate" = "0" ]; then
+						printf 'rm -rf %s\n' "$dir" | log
+					else
+						suspended_snap_date=$snap_date
+						printf '[DEBUG_FS] Suspended:      "%s"\n' "$(date --date="@$snap_date" +%Y-%m-%d-%H)" | debuglog
+					fi
+				done
+			fi
+			test "X$ci_minjobs" = "X-1" && continue
+
+			# Reverse the list so the oldest is first
+			temp1=''; for dir in $interval_dirs; do temp1=$(openbsd_addel "$temp1" "$dir"); done
+			for dir in $temp1; do
+				get_disc_stats "$_dst_dir"
+				test "$space_left" -gt "$space_to_keep" && break
+				test "$inodes_left" -gt "$minimum_inodes" && break
+				test "$count2" -le "$ci_minjobs" && break
+
+				printf '[DEBUG_FS] Not enough space/inodes in %s -> cleaning\n' \
+					"$_dst_dir" | debuglog
+				printf 'rm -rf %s\n' "$dir" | log
+				count2=$((count2 - 1))
+			done
 		done
-		sleep $_INTERVAL
 	done
+
 }
 
 # Call function to parse command line arguments.
