@@ -133,7 +133,7 @@ backup_loop()
 			generic_filter="generic:${_src_login}"
 			;;
 		push)
-			check_ssh_keyfile "$_dst_user" "$_dst_host" || continue
+			check_ssh_keyfile "$_dst_host" || continue
 			setup_socket "$_dst_login"
 			last_backup_dir=$(ssh \
 				-S "$socket" \
@@ -148,7 +148,7 @@ backup_loop()
 			rsync_dst="${_dst_login}:${_dst_dir}/${date}"
 			;;
 		pull)
-			check_ssh_keyfile "$_src_user" "$_src_host" || continue
+			check_ssh_keyfile "$_src_host" || continue
 			setup_socket "$_src_login"
 			last_backup_dir=$(\
 				find "$_dst_dir" -maxdepth 1 | \

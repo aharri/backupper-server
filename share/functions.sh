@@ -82,7 +82,7 @@ parse_jobs()
 			;;
 		push)
 			pingtest "$_dst_host"
-			check_ssh_keyfile "$_dst_user" "$_dst_host" || continue
+			check_ssh_keyfile "$_dst_host" || continue
 			setup_socket "$_dst_login"
 			ssh \
 				-S "$socket" \
@@ -155,23 +155,21 @@ parse_jobs()
 }
 
 
-# $1 = user holding known hosts file
-# $2 = remote host
+# $1 = remote host
 check_ssh_keyfile()
 {
-	local file home
+	local file
 
-	home=$(grep "^${1}:" /etc/passwd | cut -f 6 -d ':')
-
-	file=${home}/.ssh/known_hosts
+	file=${HOME}/.ssh/known_hosts
 
 	if [ ! -f "$file" ]; then
+		printf '%s\n' "[SKIPPING] '${HOME}/.ssh/known_hosts' missing." | log
 		return 1
 	fi
 
-	awk '{ print $1 }' "$file" | fgrep -q -w -e "$2"
+	awk '{ print $1 }' "$file" | fgrep -q -w -e "$1"
 	if [ "$?" -ne 0 ]; then
-		printf '%s\n' "[SKIPPING] Host key not set. \"ssh $2\" and accept signature." | log
+		printf '%s\n' "[SKIPPING] Host key not set. \"ssh $1\" and accept signature." | log
 		return 1
 	fi
 	return 0
