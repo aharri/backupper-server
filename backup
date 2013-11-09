@@ -68,7 +68,7 @@ if [ -z "$backup_lock" ]; then
 	# XXX: Printing about locking would be better *if*
 	# we need to wait for the lock.
 	echo "Trying to get a lock." | log
-	exec env backup_lock=1 flock "$0" -c "${BASE}/${PROG}" "$@"
+	exec env backup_lock=1 flock "${BASE}/locks/backup.lock" "${BASE}/${PROG}" "$@"
 fi
 echo "Locking done." | debuglog
 
@@ -83,8 +83,6 @@ check_required_tools rm ls date df kill ping mail tr ssh find \
 
 date=$(date +%Y-%m-%d-%H)
 
-# Check that there aren't other processes running
-check_backup_process
 
 # Call function to parse command line arguments.
 if [ "$#" -gt 0 ]; then

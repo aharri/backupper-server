@@ -20,7 +20,7 @@ logfile="${BASE}/logs/system.log"
 
 # Handle locking.
 if [ -z "$logger_lock" ]; then
-	exec env logger_lock=1 flock "$0" -c "${BASE}/share/${PROG}" "$@"
+	exec env logger_lock=1 flock "${BASE}/locks/logger.lock" "${BASE}/share/${PROG}" "$@"
 fi
 
 if [ -n "$1" ]; then
