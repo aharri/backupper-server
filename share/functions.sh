@@ -77,7 +77,7 @@ parse_jobs()
 
 			local last_backup_dir; last_backup_dir=$(\
 				find "$_dst_dir" -maxdepth 1 | \
-				egrep -e '/[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{2}$' | \
+				egrep -e '/[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{2}/?$' | \
 				sort -n | tail -1)
 			;;
 		push)
