@@ -60,10 +60,10 @@
 openbsd_stripcom () {
 	local _l
 
-	[[ -f $1 ]] || return
+	[ -f "$f" ] || return
 
 	while read _l; do
-		[[ -n ${_l%%#*} ]] && echo $_l
+		[ -n "${_l%%#*}" ] && echo "$_l"
 	done <$1
 }
 
@@ -138,7 +138,7 @@ openbsd_ask() {
 
 	while :; do
 		echo -n "$_question "
-		[[ -z $_default ]] || echo -n "[$_default] "
+		[ -z "$_default" ] || echo -n "[$_default] "
 		_ask && : ${resp:=$_default} && break
 	done
 }
@@ -152,7 +152,7 @@ openbsd_ask() {
 # Save the user input (or the default) in $resp.
 openbsd_ask_until() {
 	resp=
-	while [[ -z $resp ]] ; do
+	while [ -z "$resp" ] ; do
 		ask "$1" "$2"
 	done
 }
@@ -208,9 +208,9 @@ openbsd_ask_which() {
 		: ${_dyndef:=$1}
 		echo "Available ${_name}s are: $_dynlist."
 		echo -n "Which one $_query? (or 'done') "
-		[[ -n $_dyndef ]] && echo -n "[$_dyndef] "
+		[ -n "$_dyndef" ] && echo -n "[$_dyndef] "
 		_ask || continue
-		[[ -z $resp ]] && resp="$_dyndef"
+		[ -z "$resp" ]] && resp="$_dyndef"
 
 		# Quote $resp to prevent user from confusing isin() by
 		# entering something like 'a a'.
@@ -221,11 +221,12 @@ openbsd_ask_which() {
 
 # test the first argument against the remaining ones, return success on a match
 openbsd_isin() {
-	local	_a=$1 _b
+	local	_a; _a=$1
+	local	_b
 
 	shift
 	for _b; do
-		[[ $_a == $_b ]] && return 0
+		[ "x$_a" = "x$_b" ] && return 0
 	done
 	return 1
 }
@@ -233,12 +234,12 @@ openbsd_isin() {
 # add first argument to list formed by the remaining arguments
 # adds to the tail if the element does not already exist
 openbsd_addel() {
-	local	_a=$1
+	local	_a; _a=$1
 
 	shift
 
 	echo -n "$*"
-	openbsd_isin "$_a" $* || echo -n " $_a"
+	openbsd_isin "$_a" "$@" || echo -n " $_a"
 }
 
 # remove all occurrences of first argument from list formed by
@@ -248,19 +249,19 @@ openbsd_rmel() {
 
 	shift
 	for _b; do
-		[[ $_a != $_b ]] && echo -n "$_b "
+		[ "x$_a" != "x$_b" ] &&  echo -n "$_b "
 	done
 }
 
 openbsd_bsort() {
 	local _l _a=$1 _b
 
-	[[ $# -gt 0 ]] || return
+	[ "$#" -gt 0 ] || return
 
 	shift
 	for _b; do
-		if [[ $_a != $_b ]] ; then
-			if [[ $_a > $_b ]] ; then
+		if [ "$_a" != "$_b" ] ; then
+			if [ "$_a" -gt "$_b" ] ; then
 				_l="$_a $_l"; _a=$_b
 			else
 				_l="$_b $_l"
