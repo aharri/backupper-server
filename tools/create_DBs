@@ -16,9 +16,6 @@
 
 set -u
 
-echo "Broken, doesn't know how to handle job-specific backup dir."
-exit 1
-
 BASE=$(cd -- "$(dirname -- "$0")"; pwd)"/.."
 
 # Default umask.
@@ -35,12 +32,12 @@ fi
 . "$BASE/share/helpers.sh"
 . "$BASE/config/backup.conf"
 
-cd "${backups}" || exit 1
-
-# (backups) / hosts / filters / snapshots
 for backup_job in $backup_jobs; do
 	# Get _src, _src_user, _src_host and _src_login
 	parse_target "$backup_job"
-	cd "${backups}/${_src_login}/" || continue
+	case "$backup_mode" in
+		filecopy|pull)	cd "$_dst_dir" || continue ;;
+		push)		echo "Push mode not supported." ; continue ;;
+	esac
 	create_db ./ locate.db
 done
