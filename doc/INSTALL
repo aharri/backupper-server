@@ -13,7 +13,7 @@ it will run fine as is.
 to generate it.
 
 That should be it regarding the server part. Now configure
-machines or dirctories you want to back up. Root privileges
+machines or directories you want to back up. Root privileges
 are needed for a system wide snapshot.
 
 4) Install rsync on every machine.
