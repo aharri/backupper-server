@@ -47,11 +47,6 @@ check_configured_jobs()
 	parse_jobs
 	if [ -z "$parsed_jobs" ]; then 
 		printf '%s\n' "[QUITING] Nothing to do!" | log
-		# Dump to an external hard drive.
-		# Broken currently.
-# 		if [ "$exec_dump" = "YES" ]; then
-# 			$BASE/dumpfs
-# 		fi
 	fi
 }
 
