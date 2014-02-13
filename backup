@@ -61,6 +61,7 @@ fi
 . "$BASE/share/opsys.sh"
 . "$BASE/share/helpers.sh"
 . "$BASE/share/functions.sh"
+. "$BASE/share/cleanfs.sh"
 . "$BASE/config/backup.conf"
 
 # Get a lock.
@@ -95,7 +96,7 @@ run_init
 check_configured_jobs
 
 # Clean old entries before making new.
-"$BASE/share/cleanfs.sh"
+clean_fs
 
 backup_loop()
 {

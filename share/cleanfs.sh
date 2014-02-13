@@ -14,24 +14,6 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-# Paths where to look for installed utilities.
-PATH=/root/bin:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
-BASE=$(cd -- "$(dirname -- "$0")"; pwd)/..
-
-if [ ! -e "$BASE/config/backup.conf" ]; then
-    echo "Edit configuration: $BASE/config/backup.conf"
-    exit 1
-fi
-
-set -eu
-
-# Pick up functions & defaults.
-. "$BASE/share/openbsd-install.sub"
-. "$BASE/share/opsys.sh"
-. "$BASE/share/functions.sh"
-. "$BASE/config/backup.conf"
-. "$BASE/share/helpers.sh"
-
 clean_fs()
 {
 	local space_to_keep; space_to_keep=$(printf '%s\n' "$minimum_space * 1048576" | bc)
@@ -112,8 +94,8 @@ clean_fs()
 			fi
 			printf '[DEBUG_FS] Minimum jobs for %s is %s (ci:%s)\n' "$_dst_dir" "$ci_minjobs" "$ci_name" | debuglog
 			if [ "$count2" -le "$ci_minjobs" ]; then
-				printf '[DEBUG_FS] Backups low in %s, lagging? -> skipping job\n' \
-					"$_dst_dir" | debuglog
+				printf '[DEBUG_FS] Backups low in "%s":"%s", lagging? -> skipping job\n' \
+					"$_dst_dir" "$ci_name" | log
 				continue 2
 			fi
 
@@ -138,7 +120,8 @@ clean_fs()
 					printf '[DEBUG_FS] Time threshold: "%s"\n' "$(date --date="@$temp1" +%Y-%m-%d-%H)" | debuglog
 					printf '[DEBUG_FS] Snapshot date:  "%s"\n' "$(basename "$dir")" | debuglog
 					if [ "$snap_date" -gt "$temp1" ] || [ "$ci_maxrate" = "0" ]; then
-						printf 'rm -rf %s\n' "$dir" | log
+						printf 'Removing: %s\n' "$dir" | log
+						rm -rf "$dir"
 					else
 						suspended_snap_date=$snap_date
 						printf '[DEBUG_FS] Suspended:      "%s"\n' "$(date --date="@$snap_date" +%Y-%m-%d-%H)" | debuglog
@@ -157,15 +140,11 @@ clean_fs()
 
 				printf '[DEBUG_FS] Not enough space/inodes in %s -> cleaning\n' \
 					"$_dst_dir" | debuglog
-				printf 'rm -rf %s\n' "$dir" | log
+				printf 'Removing: %s\n' "$dir" | log
+				rm -rf "$dir"
 				count2=$((count2 - 1))
 			done
 		done
 	done
-
 }
 
-# Call function to parse command line arguments.
-parse_arguments $@
-
-clean_fs # function call
