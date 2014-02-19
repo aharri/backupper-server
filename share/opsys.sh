@@ -58,9 +58,9 @@ configure_envs
 my_df_i()
 {
 	if [ "$HAVE_BSD_DF" = "Yes" ]; then
-		echo $(df -i "$1" | tail -1 | awk '{ print $7 }')
+		echo $(df -i "$1" | tail -n 1 | awk '{ print $7 }')
 	elif [ "$HAVE_GNU_DF" = "Yes" ]; then
-		echo $(df -i "$1" | tail -1 | awk '{ print $4 }')
+		echo $(df -i "$1" | tail -n 1 | awk '{ print $4 }')
 	else
 		printf "ERROR: No df type defined, check opsys.sh!" >&2
 		exit 1
