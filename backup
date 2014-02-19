@@ -126,7 +126,7 @@ backup_loop()
 		task_count=$((task_count + 1))
 
 		# Check for incomplete installation.
-		local generic_filter=
+		local generic_filter
 		case "$backup_mode" in
 		filecopy)
 			last_backup_dir=$(\
