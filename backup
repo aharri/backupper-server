@@ -177,7 +177,7 @@ backup_loop()
 		fi
 
 		local i
-		for i in "generic" "generic:${_src_login}" "$_filter"; do
+		for i in "generic" "$generic_filter" "$_filter"; do
 			if [ -f "$BASE/config/filters/$i" ]; then
 				printf "%s\n" "Including filter \"$i\"" | log
 				cat "$BASE/config/filters/$i" >> "$tmp_filter_file"
