@@ -88,7 +88,7 @@ quit_handler()
 	if [ $(ls -1 "$TMPDIR/sockets/"|wc -l) -gt 0 ]; then
 		for socket in "$TMPDIR/sockets/"*; do
 			# Exit can be sent as any user.
-			ssh -S "$socket" -O exit "foo@bar.com" 2>&1 | debuglog
+			ssh -S "$socket" -O exit "invalid@invalid.invalid" 2>&1 | debuglog
 			test -e "$socket" && printf 'Socket did not seem to close: %s\n' "$socket" | debuglog
 		done
 	fi
