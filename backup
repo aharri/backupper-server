@@ -193,8 +193,6 @@ backup_loop()
 			rsync \
 				$rsync_opts \
 				-a \
-				--delete-after \
-				--delete-excluded \
 				--numeric-ids \
 				--filter=". $tmp_filter_file" \
 				$rsync_last_backup_dir \
@@ -210,8 +208,6 @@ backup_loop()
 				-a -z \
 				-e "ssh $ssh_verbose -S $socket -o PasswordAuthentication=no -o BatchMode=yes" \
 				--rsync-path="$_cmd" \
-				--delete-after \
-				--delete-excluded \
 				--numeric-ids \
 				--filter=". $tmp_filter_file" \
 				$rsync_last_backup_dir \
