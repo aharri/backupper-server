@@ -60,6 +60,7 @@ show_usage()
 # Parse command line arguments.
 parse_arguments()
 {
+	dry_run=
 	args=$(getopt vhn $*)
 	if [ $? -ne 0 ]; then
 		show_usage
@@ -72,7 +73,9 @@ parse_arguments()
 				-h)
 					show_usage; shift;;
 				-n)
-					rsync_opts="$rsync_opts -n"; shift;;
+					rsync_opts="$rsync_opts -n"
+					dry_run=yes
+					shift;;
 				--)
 			shift; break;;
 		esac

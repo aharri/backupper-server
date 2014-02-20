@@ -121,7 +121,7 @@ clean_fs()
 					printf '[DEBUG_FS] Snapshot date:  "%s"\n' "$(basename "$dir")" | debuglog
 					if [ "$snap_date" -gt "$temp1" ] || [ "$ci_maxrate" = "0" ]; then
 						printf 'Removing: %s\n' "$dir" | log
-						rm -rf "$dir"
+						test "$dry_run" != "yes" && rm -rf "$dir"
 					else
 						suspended_snap_date=$snap_date
 						printf '[DEBUG_FS] Suspended:      "%s"\n' "$(date --date="@$snap_date" +%Y-%m-%d-%H)" | debuglog
@@ -141,7 +141,7 @@ clean_fs()
 				printf '[DEBUG_FS] Not enough space/inodes in %s -> cleaning\n' \
 					"$_dst_dir" | debuglog
 				printf 'Removing: %s\n' "$dir" | log
-				rm -rf "$dir"
+				test "$dry_run" != "yes" && rm -rf "$dir"
 				count2=$((count2 - 1))
 			done
 		done
