@@ -140,7 +140,6 @@ backup_loop()
 			setup_socket "$_dst_login"
 			last_backup_dir=$(ssh \
 				-S "$socket" \
-				-o PasswordAuthentication=no \
 				-o BatchMode=yes \
 				"$_dst_login" \
 				"find '${_dst_dir}' -type d -maxdepth 1 | \
@@ -206,7 +205,7 @@ backup_loop()
 			rsync \
 				$rsync_opts \
 				-a -z \
-				-e "ssh $ssh_verbose -S $socket -o PasswordAuthentication=no -o BatchMode=yes" \
+				-e "ssh $ssh_verbose -S $socket -o BatchMode=yes" \
 				--rsync-path="$_cmd" \
 				--numeric-ids \
 				--filter=". $tmp_filter_file" \

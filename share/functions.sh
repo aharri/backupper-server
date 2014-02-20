@@ -83,14 +83,12 @@ parse_jobs()
 			setup_socket "$_dst_login"
 			ssh \
 				-S "$socket" \
-				-o PasswordAuthentication=no \
 				-o BatchMode=yes \
 				"$_dst_login" \
 				"test -d '${_dst_dir}'"
 			if [ "$?" -ne "0" ]; then
 				ssh \
 					-S "$socket" \
-					-o PasswordAuthentication=no \
 					-o BatchMode=yes \
 					"$_dst_login" \
 					"mkdir -p '${_dst_dir}'"
@@ -108,7 +106,6 @@ parse_jobs()
 			local last_backup_dir=$(
 				ssh \
 				-S "$socket" \
-				-o PasswordAuthentication=no \
 				-o BatchMode=yes \
 				"$_dst_login" \
 				"find '${_dst_dir}' -type d -maxdepth 1 | \
@@ -199,7 +196,6 @@ setup_socket()
 			-S "$socket" \
 			-M \
 			-N \
-			-o PasswordAuthentication=no \
 			-o BatchMode=yes \
 			-i "$ssh_key" \
 			-f "$1" >> ${BASE}/logs/auth.log 2>&1
