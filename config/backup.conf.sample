@@ -57,7 +57,11 @@ debug=
 # Rsync option passing. Use this to pass options
 # directly to rsync. Doesn't override built-ins,
 # only appends more options.
-rsync_opts=
+# -H preserves hardlinks
+# -S saves space with sparse files
+# -A and -X preserves ACL and extended attributes (might
+# not work on all operating systems)
+rsync_opts="-H -S"
 
 # FILTERS
 
