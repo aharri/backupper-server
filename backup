@@ -66,6 +66,8 @@ fi
 
 # Get a lock.
 if [ -z "$backup_lock" ]; then
+	# Make sure locks/ exist
+	mkdir "$BASE/locks" 1>/dev/null 2>&1 || :
 	# XXX: Printing about locking would be better *if*
 	# we need to wait for the lock.
 	echo "Trying to get a lock." | log
