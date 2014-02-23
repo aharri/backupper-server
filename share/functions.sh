@@ -163,21 +163,12 @@ parse_jobs()
 # $1 = remote host
 check_ssh_keyfile()
 {
-	local file
-
-	file=${HOME}/.ssh/known_hosts
-
-	if [ ! -f "$file" ]; then
-		printf '%s\n' "[SKIPPING] '${HOME}/.ssh/known_hosts' missing." | log
-		return 1
-	fi
-
-	awk '{ print $1 }' "$file" | fgrep -q -w -e "$1"
-	if [ "$?" -ne 0 ]; then
+	local result
+	result=$(ssh-keygen -F "$1")
+	if [ "$?" -ne 0 ] || [ -z "$result" ]; then
 		printf '%s\n' "[SKIPPING] Host key not set. \"ssh $1\" and accept signature." | log
 		return 1
 	fi
-	return 0
 }
 
 pingtest()
