@@ -16,18 +16,24 @@
 
 log()
 {
-	local stamp; stamp=$(date "+%h %e %H:%M:%S")
+	# The log file name can be overriden by passing a different
+	# name as the first argument to this function.
+	local logfile; logfile=${1:-"${BASE}/logs/system.log"}
 
-	test -t 1 # test for stdout
-	if [ "$?" -eq 0 ] || [ -z "$mailto" ]; then
-		local TMP; TMP=$(mktemp) || exit 1
-		sed "s|^|$stamp |" > "$TMP"
-		cat "$TMP"
-		"${BASE}/share/logger.sh" < "$TMP"
-		rm -f "$TMP"
-	else
-		sed "s|^|$stamp |" | "${BASE}/share/logger.sh"
+	# Prefix each line from stdin with a timestamp.
+	local stamp; stamp=$(date "+%h %e %H:%M:%S")
+	local message; message=$(sed "s|^|$stamp |")
+
+	# If stdout (file descriptor 1) is a terminal, write the message
+	# to stdout. If no email address has been specified, write
+	# the message to stdout even if stdout isn't a terminal.
+	if test -t 1 || [ -z "$mailto" ]; then
+		printf '%s\n' "$message"
 	fi
+
+	# Write to the log file. Use a lock on the log file to ensure that
+	# multiple processes writing to the same log file won't make a mess.
+	( exec 9>> "$logfile" && flock 9 && printf '%s\n' "$message" >&9 )
 }
 
 # debug logging
