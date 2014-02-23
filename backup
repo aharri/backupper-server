@@ -99,13 +99,6 @@ check_configured_jobs
 # Clean old entries before making new.
 clean_fs
 
-# Finds the latests backup from a newline-separated input sorted in
-# ascending order (ls -1 does this).
-get_prev_backup()
-{
-	egrep '^[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{2}$' | tail -n 1
-}
-
 backup_loop()
 {
 	local ret

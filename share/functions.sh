@@ -48,6 +48,13 @@ get_disc_stats()
 	inodes_left=$(my_df_i "$1")
 }
 
+# Finds the latests backup from a newline-separated input sorted in
+# ascending order (ls -1 does this).
+get_prev_backup()
+{
+	egrep '^[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{2}$' | tail -n 1
+}
+
 #
 # Check config/backup.conf.sample for details on the 
 # backup job syntax.
@@ -62,6 +69,8 @@ parse_jobs()
 	for backup_job in $backup_jobs; do
 		# Explode job into parts.
 		parse_target "$backup_job"
+
+		local last_backup_dir;
 
 		case "$backup_mode" in
 		filecopy|pull)
@@ -78,10 +87,7 @@ parse_jobs()
 				continue
 			fi
 
-			local last_backup_dir; last_backup_dir=$(\
-				find "$_dst_dir" -maxdepth 1 | \
-				egrep -e '/[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{2}/?$' | \
-				sort -n | tail -n 1)
+			last_backup_dir=$(ls -1 "$_dst_dir" | get_prev_backup)
 			;;
 		push)
 			pingtest "$_dst_host"
@@ -109,14 +115,12 @@ parse_jobs()
 				continue
 			fi
 
-			local last_backup_dir=$(
+			last_backup_dir=$(
 				ssh \
 				-S "$socket" \
 				-o BatchMode=yes \
 				"$_dst_login" \
-				"find '${_dst_dir}' -type d -maxdepth 1 | \
-				egrep -e '/[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{2}$' | \
-				sort -n | tail -n 1")
+				"ls -1 '${_dst_dir}'" | get_prev_backup)
 			;;
 		esac
 		if [ -z "$last_backup_dir" ]; then
