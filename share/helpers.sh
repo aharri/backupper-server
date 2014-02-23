@@ -60,27 +60,26 @@ show_usage()
 # Parse command line arguments.
 parse_arguments()
 {
-	dry_run=
-	args=$(getopt vhn $*)
-	if [ $? -ne 0 ]; then
-		show_usage
-	fi
-	set -- $args
-	while [ $# -ge 0 ]; do
-		case "$1" in
-				-v)
-					if [ "$debug" = "YES" ]; then set -x; fi; shift;;
-				-h)
-					show_usage; shift;;
-				-n)
-					rsync_opts="$rsync_opts -n"
-					dry_run=yes
-					shift;;
-				--)
-			shift; break;;
+	local arg
+	while getopts vhn arg "$@"; do
+		case "$arg" in
+			-v)
+				if [ "$debug" = "YES" ]; then set -x; fi;;
+			-h)
+				show_usage;;
+			-n)
+				rsync_opts="$rsync_opts -n"
+				dry_run=yes;;
+			*)
+				show_usage;;
 		esac
 	done
 
+	# No non-option arguments are supported.
+	shift $((OPTIND - 1))
+	if [ $# -ne 0 ]; then
+		show_usage
+	fi
 }
 
 # Prevent shutdown before mail is delivered
