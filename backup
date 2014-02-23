@@ -88,7 +88,7 @@ date=$(date +%Y-%m-%d-%H)
 
 # Call function to parse command line arguments.
 if [ "$#" -gt 0 ]; then
-	parse_arguments $@
+	parse_arguments "$@"
 fi
 
 # Call function to install signal traps and init other stuff.
@@ -196,7 +196,7 @@ backup_loop()
 				-a \
 				--numeric-ids \
 				--filter=". $tmp_filter_file" \
-				$rsync_last_backup_dir \
+				"$rsync_last_backup_dir" \
 				"$_src_dir" \
 				"$_dst_dir/$date" > "${TMPDIR}/rsync_output" 2>&1
 			;;
@@ -211,7 +211,7 @@ backup_loop()
 				--rsync-path="$_cmd" \
 				--numeric-ids \
 				--filter=". $tmp_filter_file" \
-				$rsync_last_backup_dir \
+				"$rsync_last_backup_dir" \
 				"$rsync_src" \
 				"$rsync_dst" > "${TMPDIR}/rsync_output" 2>&1
 			;;
