@@ -64,16 +64,15 @@ fi
 . "$BASE/share/cleanfs.sh"
 . "$BASE/config/backup.conf"
 
-# Get a lock.
-if [ -z "$backup_lock" ]; then
-	# Make sure locks/ exist
-	mkdir "$BASE/locks" 1>/dev/null 2>&1 || :
-	# XXX: Printing about locking would be better *if*
-	# we need to wait for the lock.
-	echo "Trying to get a lock." | log
-	exec env backup_lock=1 flock "${BASE}/locks/backup.lock" "${BASE}/${PROG}" "$@"
+# Get a lock. Write to the log if the lock isn't immediately available.
+mkdir -p "$BASE/locks" || exit 1
+exec 9> "$BASE/locks/backup.lock" || exit 1
+if ! flock -n 9; then
+	# XXX: log or debuglog?
+	echo "Trying to get a lock..." | log
+	flock 9 || exit 1
+	echo "...locking done." | log
 fi
-echo "Locking done." | debuglog
 
 # Set -u here, otherwise locking will not work.
 # XXX: -e
