@@ -15,17 +15,9 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 BASE=$(cd -- "$(dirname -- "$0")"; pwd)/..
-PROG=$(basename "$0")
-logfile="${BASE}/logs/system.log"
+logfile=${1:-"${BASE}/logs/system.log"}
 
-# Handle locking.
-if [ -z "$logger_lock" ]; then
-	exec env logger_lock=1 flock "${BASE}/locks/logger.lock" "${BASE}/share/${PROG}" "$@"
-fi
-
-if [ -n "$1" ]; then
-	logfile=$1
-fi
-
-# Log parameters
-cat >> "$logfile"
+# Write everything from stdin to the log file. Use a lock on the log file
+# to ensure that multiple processes writing to the same log file won't
+# make a mess.
+exec 9>> "$logfile" && flock 9 && cat >&9
