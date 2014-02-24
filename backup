@@ -40,6 +40,7 @@ rsync_opts=
 minimum_space=3
 minimum_inodes=10000
 backup_jobs=
+dry_run=
 
 # Other variables.
 task_count=0
