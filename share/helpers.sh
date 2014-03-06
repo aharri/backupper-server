@@ -63,11 +63,11 @@ parse_arguments()
 	local arg
 	while getopts vhn arg "$@"; do
 		case "$arg" in
-			-v)
+			v)
 				if [ "$debug" = "YES" ]; then set -x; fi;;
-			-h)
+			h)
 				show_usage;;
-			-n)
+			n)
 				rsync_opts="$rsync_opts -n"
 				dry_run=yes;;
 			*)
